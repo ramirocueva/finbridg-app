@@ -1,1 +1,1 @@
-# finbridg-app
+# finbridge-app
