@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinBridge | Agente de Negociación AI-Powered</title>
+<meta name="description" content="FinBridge - El Agente de Negociación más inteligente de Argentina. Cotizaciones en vivo, asesoramiento IA personalizado, acciones, CEDEARs, bonos y dólar MEP/CCL.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ===== RESET & BASE ===== */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#030712;--bg2:#0a0f1e;--card:#111827;--card2:#1a2332;
+  --border:#1f2937;--border2:#374151;
+  --text:#f1f5f9;--text2:#cbd5e1;--muted:#64748b;
+  --gold:#f59e0b;--gold2:#d97706;--gold-bg:rgba(245,158,11,.08);
+  --green:#34d399;--green2:#059669;--green-bg:rgba(52,211,153,.08);
+  --red:#f87171;--red2:#dc2626;--red-bg:rgba(248,113,113,.08);
+  --purple:#818cf8;--purple2:#6366f1;
+  --blue:#38bdf8;
+  --radius:16px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
+::selection{background:var(--gold);color:var(--bg)}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes glow{0%,100%{box-shadow:0 0 20px rgba(245,158,11,.05)}50%{box-shadow:0 0 40px rgba(245,158,11,.12)}}
+@keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+.fade-up{animation:fadeUp .6s ease both}
+.fade-in{animation:fadeIn .4s ease both}
+.skeleton{background:linear-gradient(90deg,var(--card) 25%,var(--card2) 50%,var(--card) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;height:20px}
+
+/* ===== LAYOUT ===== */
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+
+/* ===== NAV ===== */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(3,7,18,.85);backdrop-filter:blur(20px);border-bottom:1px solid rgba(31,41,55,.5);transition:all .3s}
+.nav.scrolled{background:rgba(3,7,18,.95);box-shadow:0 4px 30px rgba(0,0,0,.3)}
+.nav-inner{display:flex;justify-content:space-between;align-items:center;height:72px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-mark{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:var(--bg);box-shadow:0 4px 20px rgba(245,158,11,.25)}
+.logo-type{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.logo-type span{color:var(--gold)}
+.nav-links{display:flex;gap:32px;align-items:center}
+.nav-links a{font-size:14px;font-weight:500;color:var(--muted);transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--bg);padding:10px 24px;border-radius:10px;font-weight:700;font-size:14px;border:none;cursor:pointer;transition:all .2s;box-shadow:0 4px 20px rgba(245,158,11,.2)}
+.nav-cta:hover{transform:translateY(-1px);box-shadow:0 6px 30px rgba(245,158,11,.3)}
+.mobile-menu-btn{display:none;background:none;border:none;color:var(--text);font-size:24px;cursor:pointer}
+
+/* ===== HERO ===== */
+.hero{padding:140px 0 80px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:800px;height:600px;background:radial-gradient(ellipse,rgba(245,158,11,.06) 0%,transparent 70%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--gold-bg);border:1px solid rgba(245,158,11,.2);border-radius:100px;padding:8px 20px;font-size:13px;font-weight:600;color:var(--gold);margin-bottom:28px;animation:fadeUp .5s ease both}
+.hero-badge .live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:livePulse 2s infinite}
+.hero h1{font-size:clamp(36px,5vw,64px);font-weight:900;letter-spacing:-1.5px;line-height:1.1;margin-bottom:20px;animation:fadeUp .6s ease both;animation-delay:.1s}
+.hero h1 .gradient{background:linear-gradient(135deg,var(--gold),#fbbf24,var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:clamp(16px,2vw,20px);color:var(--text2);max-width:640px;margin:0 auto 36px;line-height:1.7;animation:fadeUp .6s ease both;animation-delay:.2s}
+.hero-actions{display:flex;gap:16px;justify-content:center;animation:fadeUp .6s ease both;animation-delay:.3s}
+.btn-primary{background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--bg);padding:14px 32px;border-radius:12px;font-weight:700;font-size:15px;border:none;cursor:pointer;transition:all .2s;box-shadow:0 4px 24px rgba(245,158,11,.25)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(245,158,11,.35)}
+.btn-secondary{background:var(--card);border:1px solid var(--border);color:var(--text);padding:14px 32px;border-radius:12px;font-weight:600;font-size:15px;cursor:pointer;transition:all .2s}
+.btn-secondary:hover{border-color:var(--border2);background:var(--card2)}
+.hero-stats{display:flex;justify-content:center;gap:48px;margin-top:56px;animation:fadeUp .6s ease both;animation-delay:.4s}
+.hero-stat{text-align:center}
+.hero-stat-value{font-size:28px;font-weight:800;font-family:'JetBrains Mono';color:var(--gold)}
+.hero-stat-label{font-size:12px;color:var(--muted);margin-top:4px;letter-spacing:1px;text-transform:uppercase}
+
+/* ===== SECTION SHARED ===== */
+.section{padding:80px 0}
+.section-header{text-align:center;margin-bottom:48px}
+.section-label{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+.section-title{font-size:clamp(28px,3.5vw,40px);font-weight:800;letter-spacing:-1px;margin-bottom:12px}
+.section-subtitle{font-size:16px;color:var(--muted);max-width:560px;margin:0 auto}
+
+/* ===== COTIZACIONES ===== */
+.cotizaciones{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+
+/* Dollar Cards */
+.dollar-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:48px}
+.dollar-card{background:var(--card);border-radius:var(--radius);padding:24px;border:1px solid var(--border);transition:all .3s;position:relative;overflow:hidden}
+.dollar-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.dollar-card .label{font-size:11px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.dollar-card .label .flag{font-size:14px}
+.dollar-card .price{font-size:32px;font-weight:800;font-family:'JetBrains Mono';letter-spacing:-1px}
+.dollar-card .spread{display:flex;gap:16px;margin-top:10px;font-size:13px;color:var(--muted)}
+.dollar-card .spread b{color:var(--text2);font-weight:600}
+.dollar-card .variation{position:absolute;top:20px;right:20px;font-size:13px;font-weight:700;font-family:'JetBrains Mono';padding:4px 10px;border-radius:8px}
+.dollar-card .variation.up{color:var(--green);background:var(--green-bg)}
+.dollar-card .variation.down{color:var(--red);background:var(--red-bg)}
+.dollar-card .variation.neutral{color:var(--muted);background:rgba(100,116,139,.1)}
+
+/* Tabs for instruments */
+.instrument-tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--card);border-radius:12px;padding:4px;border:1px solid var(--border);width:fit-content}
+.instrument-tab{padding:10px 24px;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:'Inter';background:transparent;color:var(--muted);transition:all .2s}
+.instrument-tab.active{background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--bg);box-shadow:0 2px 12px rgba(245,158,11,.2)}
+.instrument-tab:hover:not(.active){color:var(--text)}
+
+/* Table */
+.quote-table{width:100%;border-collapse:separate;border-spacing:0;background:var(--card);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+.quote-table thead{background:rgba(245,158,11,.04)}
+.quote-table th{text-align:left;padding:14px 20px;font-size:11px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;font-weight:600;border-bottom:1px solid var(--border)}
+.quote-table th:last-child,.quote-table td:last-child{text-align:right}
+.quote-table td{padding:14px 20px;border-bottom:1px solid rgba(31,41,55,.5);font-size:14px;transition:background .2s}
+.quote-table tr:last-child td{border-bottom:none}
+.quote-table tbody tr:hover td{background:rgba(245,158,11,.02)}
+.quote-table .ticker{font-weight:700;font-family:'JetBrains Mono';font-size:14px;color:var(--gold)}
+.quote-table .name{color:var(--text2);font-size:13px}
+.quote-table .price-cell{font-family:'JetBrains Mono';font-weight:600}
+.quote-table .change{font-family:'JetBrains Mono';font-weight:700;font-size:13px;padding:3px 10px;border-radius:6px;display:inline-block}
+.quote-table .change.up{color:var(--green);background:var(--green-bg)}
+.quote-table .change.down{color:var(--red);background:var(--red-bg)}
+.quote-table .change.neutral{color:var(--muted)}
+.quote-table .volume{color:var(--muted);font-family:'JetBrains Mono';font-size:12px}
+
+.live-indicator{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--green);font-weight:600}
+.live-indicator .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:livePulse 2s infinite}
+.update-time{font-size:12px;color:var(--muted);margin-left:auto}
+.table-header{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+
+/* ===== FEATURES ===== */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.feature-card{background:var(--card);border-radius:var(--radius);padding:32px;border:1px solid var(--border);transition:all .3s}
+.feature-card:hover{border-color:rgba(245,158,11,.2);transform:translateY(-3px);box-shadow:0 16px 48px rgba(0,0,0,.2)}
+.feature-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:20px}
+.feature-card h3{font-size:17px;font-weight:700;margin-bottom:8px}
+.feature-card p{font-size:14px;color:var(--muted);line-height:1.7}
+
+/* ===== CTA ===== */
+.cta-section{text-align:center;padding:100px 0}
+.cta-box{background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(99,102,241,.05));border:1px solid rgba(245,158,11,.15);border-radius:24px;padding:64px 48px;max-width:720px;margin:0 auto;position:relative;overflow:hidden}
+.cta-box::before{content:'';position:absolute;top:-100px;right:-100px;width:300px;height:300px;background:radial-gradient(circle,rgba(245,158,11,.08),transparent);pointer-events:none}
+.cta-box h2{font-size:32px;font-weight:800;margin-bottom:12px;letter-spacing:-.5px}
+.cta-box p{color:var(--muted);font-size:16px;margin-bottom:32px;max-width:480px;margin-left:auto;margin-right:auto;line-height:1.7}
+.cta-form{display:flex;gap:10px;max-width:440px;margin:0 auto}
+.cta-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px 18px;color:var(--text);font-size:14px;font-family:'Inter';outline:none;transition:border-color .2s}
+.cta-input:focus{border-color:var(--gold)}
+.cta-input::placeholder{color:var(--muted)}
+
+/* ===== FOOTER ===== */
+.footer{border-top:1px solid var(--border);padding:40px 0;text-align:center}
+.footer-inner{display:flex;justify-content:space-between;align-items:center}
+.footer-left{font-size:13px;color:var(--muted)}
+.footer-left b{color:var(--text)}
+.footer-links{display:flex;gap:24px}
+.footer-links a{font-size:13px;color:var(--muted);transition:color .2s}
+.footer-links a:hover{color:var(--gold)}
+.footer-regulatory{margin-top:20px;padding-top:20px;border-top:1px solid rgba(31,41,55,.5);font-size:11px;color:#475569;line-height:1.7;max-width:800px;margin-left:auto;margin-right:auto;text-align:center}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:1024px){
+  .dollar-grid{grid-template-columns:repeat(2,1fr)}
+  .features-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:768px){
+  .nav-links{display:none}
+  .mobile-menu-btn{display:block}
+  .dollar-grid{grid-template-columns:1fr}
+  .features-grid{grid-template-columns:1fr}
+  .hero-stats{flex-wrap:wrap;gap:24px}
+  .hero-actions{flex-direction:column;align-items:center}
+  .cta-form{flex-direction:column}
+  .footer-inner{flex-direction:column;gap:16px}
+  .instrument-tabs{width:100%;overflow-x:auto}
+  .instrument-tab{white-space:nowrap;flex-shrink:0}
+  .quote-table{font-size:13px}
+  .quote-table th,.quote-table td{padding:10px 12px}
+  .hero{padding:120px 0 60px}
+}
+@media(max-width:480px){
+  .container{padding:0 16px}
+  .hero h1{font-size:32px}
+  .dollar-card .price{font-size:24px}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== NAV ===== -->
+<nav class="nav" id="nav">
+  <div class="container nav-inner">
+    <a href="#" class="logo">
+      <div class="logo-mark">F</div>
+      <div class="logo-type"><span>Fin</span>Bridge</div>
+    </a>
+    <div class="nav-links">
+      <a href="#cotizaciones">Cotizaciones</a>
+      <a href="#funcionalidades">Funcionalidades</a>
+      <a href="#contacto">Contacto</a>
+      <button class="nav-cta" onclick="scrollTo('#contacto')">Quiero invertir</button>
+    </div>
+    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu()">&#9776;</button>
+  </div>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">
+      <span class="live-dot"></span>
+      Cotizaciones en vivo
+    </div>
+    <h1>
+      Tu agente de negociación<br>
+      <span class="gradient">inteligente</span>
+    </h1>
+    <p>
+      Accedé a cotizaciones en tiempo real del mercado argentino, asesoramiento personalizado con inteligencia artificial y las mejores herramientas para hacer crecer tu capital.
+    </p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="document.getElementById('contacto').scrollIntoView({behavior:'smooth'})">Empezar ahora</button>
+      <button class="btn-secondary" onclick="document.getElementById('cotizaciones').scrollIntoView({behavior:'smooth'})">Ver cotizaciones</button>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-value" id="merval-index">—</div>
+        <div class="hero-stat-label">S&P Merval</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value" id="riesgo-pais">—</div>
+        <div class="hero-stat-label">Riesgo País</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-value" id="hero-mep">—</div>
+        <div class="hero-stat-label">Dólar MEP</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== COTIZACIONES ===== -->
+<section class="cotizaciones section" id="cotizaciones">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">&#128200; MERCADO EN VIVO</div>
+      <h2 class="section-title">Cotizaciones del mercado argentino</h2>
+      <p class="section-subtitle">Información actualizada en tiempo real para tomar las mejores decisiones de inversión</p>
+    </div>
+
+    <!-- Dollar Cards -->
+    <div class="dollar-grid" id="dollar-grid">
+      <div class="dollar-card">
+        <div class="label"><span class="flag">&#127462;&#127479;</span> DÓLAR OFICIAL</div>
+        <div class="price" id="dolar-oficial">—</div>
+        <div class="spread">Compra <b id="oficial-compra">—</b> &middot; Venta <b id="oficial-venta">—</b></div>
+        <div class="variation neutral" id="oficial-var">—</div>
+      </div>
+      <div class="dollar-card">
+        <div class="label"><span class="flag">&#128176;</span> DÓLAR BLUE</div>
+        <div class="price" id="dolar-blue">—</div>
+        <div class="spread">Compra <b id="blue-compra">—</b> &middot; Venta <b id="blue-venta">—</b></div>
+        <div class="variation neutral" id="blue-var">—</div>
+      </div>
+      <div class="dollar-card" style="border-color:rgba(245,158,11,.2);animation:glow 4s infinite">
+        <div class="label"><span class="flag">&#128200;</span> DÓLAR MEP</div>
+        <div class="price" id="dolar-mep" style="color:var(--gold)">—</div>
+        <div class="spread">Compra <b id="mep-compra">—</b> &middot; Venta <b id="mep-venta">—</b></div>
+        <div class="variation neutral" id="mep-var">—</div>
+      </div>
+      <div class="dollar-card">
+        <div class="label"><span class="flag">&#127757;</span> DÓLAR CCL</div>
+        <div class="price" id="dolar-ccl">—</div>
+        <div class="spread">Compra <b id="ccl-compra">—</b> &middot; Venta <b id="ccl-venta">—</b></div>
+        <div class="variation neutral" id="ccl-var">—</div>
+      </div>
+    </div>
+
+    <!-- Instrument Tabs + Table -->
+    <div class="table-header">
+      <div class="instrument-tabs" id="instrument-tabs">
+        <button class="instrument-tab active" data-panel="acciones" onclick="switchPanel('acciones')">Acciones</button>
+        <button class="instrument-tab" data-panel="cedears" onclick="switchPanel('cedears')">CEDEARs</button>
+        <button class="instrument-tab" data-panel="bonos" onclick="switchPanel('bonos')">Bonos</button>
+        <button class="instrument-tab" data-panel="tasas" onclick="switchPanel('tasas')">Tasas</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-left:auto">
+        <span class="live-indicator"><span class="dot"></span> En vivo</span>
+        <span class="update-time" id="update-time">Actualizando...</span>
+      </div>
+    </div>
+
+    <!-- Acciones Panel -->
+    <div id="panel-acciones">
+      <table class="quote-table">
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th>Empresa</th>
+            <th>Último</th>
+            <th>Variación</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-acciones">
+          <tr><td colspan="4"><div class="skeleton" style="width:100%;height:16px;margin:4px 0"></div></td></tr>
+          <tr><td colspan="4"><div class="skeleton" style="width:100%;height:16px;margin:4px 0"></div></td></tr>
+          <tr><td colspan="4"><div class="skeleton" style="width:100%;height:16px;margin:4px 0"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- CEDEARs Panel -->
+    <div id="panel-cedears" style="display:none">
+      <table class="quote-table">
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th>Empresa</th>
+            <th>Último (ARS)</th>
+            <th>Variación</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-cedears">
+          <tr><td colspan="4"><div class="skeleton" style="width:100%;height:16px;margin:4px 0"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Bonos Panel -->
+    <div id="panel-bonos" style="display:none">
+      <table class="quote-table">
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th>Instrumento</th>
+            <th>Último (USD)</th>
+            <th>Variación</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-bonos">
+          <tr><td colspan="4"><div class="skeleton" style="width:100%;height:16px;margin:4px 0"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tasas Panel -->
+    <div id="panel-tasas" style="display:none">
+      <table class="quote-table">
+        <thead>
+          <tr>
+            <th>Instrumento</th>
+            <th>Plazo</th>
+            <th>TNA</th>
+            <th>TEA</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-tasas">
+          <tr><td colspan="4"><div class="skeleton" style="width:100%;height:16px;margin:4px 0"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===== FEATURES ===== -->
+<section class="section" id="funcionalidades">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">&#9889; FUNCIONALIDADES</div>
+      <h2 class="section-title">Todo lo que necesitás para invertir</h2>
+      <p class="section-subtitle">FinBridge combina tecnología e inteligencia artificial para ofrecerte la mejor experiencia de inversión</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon" style="background:var(--gold-bg)">&#128200;</div>
+        <h3>Cotizaciones en tiempo real</h3>
+        <p>Seguí el minuto a minuto de acciones, CEDEARs, bonos, dólar MEP/CCL y más. Todo actualizado automáticamente.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(129,140,248,.1)">&#129302;</div>
+        <h3>Asesor IA personalizado</h3>
+        <p>Un bot inteligente que conoce tu perfil, tu cartera y las condiciones del mercado. Como tener un asesor financiero 24/7.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:var(--green-bg)">&#128176;</div>
+        <h3>Cartera y saldos en vivo</h3>
+        <p>Consultá tus posiciones, rendimientos y movimientos desde cualquier dispositivo, en cualquier momento.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:var(--red-bg)">&#128202;</div>
+        <h3>Cheques y cauciones</h3>
+        <p>Descontá e-cheqs, colocá cauciones y accedé al scoring crediticio con IA para evaluar riesgo.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(56,189,248,.1)">&#128241;</div>
+        <h3>App para el celular</h3>
+        <p>Llevá FinBridge en tu bolsillo. App nativa para iOS y Android con todas las funcionalidades. Próximamente.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(245,158,11,.06)">&#128274;</div>
+        <h3>Seguridad y compliance</h3>
+        <p>Operamos bajo el marco regulatorio de la CNV como Agente de Negociación, con los más altos estándares de seguridad.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA ===== -->
+<section class="cta-section" id="contacto">
+  <div class="container">
+    <div class="cta-box">
+      <h2>Empezá a invertir con FinBridge</h2>
+      <p>Dejanos tu email y te contactamos para que accedas a la plataforma de inversión más inteligente de Argentina.</p>
+      <div class="cta-form" id="cta-form">
+        <input class="cta-input" type="email" id="cta-email" placeholder="tu@email.com" required>
+        <button class="btn-primary" onclick="submitEmail()">Registrarme</button>
+      </div>
+      <p id="cta-success" style="display:none;color:var(--green);font-weight:600;margin-top:16px">&#10003; Te registramos. Nos comunicamos pronto.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-left"><b>FinBridge</b> &copy; 2026. Todos los derechos reservados.</div>
+      <div class="footer-links">
+        <a href="#cotizaciones">Cotizaciones</a>
+        <a href="#funcionalidades">Funcionalidades</a>
+        <a href="#contacto">Contacto</a>
+      </div>
+    </div>
+    <div class="footer-regulatory">
+      FinBridge opera como Agente de Negociación bajo la regulación de la Comisión Nacional de Valores (CNV) de la República Argentina. La información de cotizaciones es provista con fines informativos y no constituye una oferta de compra o venta de valores negociables. Las inversiones en el mercado de capitales están sujetas a riesgo. Rendimientos pasados no garantizan rendimientos futuros.
+    </div>
+  </div>
+</footer>
+
+<script>
+// ============================================================
+//  FINBRIDGE - Landing Page with Live Market Data
+//  Phase 1: Public landing with real-time quotes
+// ============================================================
+
+// ===== NAV SCROLL =====
+window.addEventListener('scroll', () => {
+  document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// ===== MOBILE MENU =====
+function toggleMobileMenu() {
+  const links = document.querySelector('.nav-links');
+  links.style.display = links.style.display === 'flex' ? 'none' : 'flex';
+  links.style.position = 'absolute';
+  links.style.top = '72px';
+  links.style.left = '0';
+  links.style.right = '0';
+  links.style.background = 'rgba(3,7,18,.98)';
+  links.style.flexDirection = 'column';
+  links.style.padding = '20px 24px';
+  links.style.gap = '16px';
+  links.style.borderBottom = '1px solid var(--border)';
+}
+
+// ===== FORMAT HELPERS =====
+function formatARS(n) {
+  if (!n && n !== 0) return '—';
+  return '$' + Number(n).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+function formatUSD(n) {
+  if (!n && n !== 0) return '—';
+  return 'USD ' + Number(n).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+function formatChange(pct) {
+  if (pct === null || pct === undefined || isNaN(pct)) return '<span class="change neutral">—</span>';
+  const sign = pct >= 0 ? '+' : '';
+  const cls = pct > 0 ? 'up' : pct < 0 ? 'down' : 'neutral';
+  return `<span class="change ${cls}">${sign}${pct.toFixed(2)}%</span>`;
+}
+function setVariation(id, pct) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (pct === null || pct === undefined || isNaN(pct)) return;
+  const sign = pct >= 0 ? '+' : '';
+  el.textContent = sign + pct.toFixed(2) + '%';
+  el.className = 'variation ' + (pct > 0 ? 'up' : pct < 0 ? 'down' : 'neutral');
+}
+
+// ===== INSTRUMENT TABS =====
+function switchPanel(id) {
+  ['acciones','cedears','bonos','tasas'].forEach(p => {
+    document.getElementById('panel-' + p).style.display = p === id ? '' : 'none';
+  });
+  document.querySelectorAll('.instrument-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.panel === id);
+  });
+}
+
+// ===== FETCH DOLLAR RATES =====
+async function fetchDollarRates() {
+  try {
+    const res = await fetch('https://dolarapi.com/v1/dolares');
+    if (!res.ok) throw new Error('API error');
+    const data = await res.json();
+
+    const map = {};
+    data.forEach(d => { map[d.casa] = d; });
+
+    // Oficial
+    if (map.oficial) {
+      document.getElementById('dolar-oficial').textContent = formatARS(map.oficial.venta);
+      document.getElementById('oficial-compra').textContent = formatARS(map.oficial.compra);
+      document.getElementById('oficial-venta').textContent = formatARS(map.oficial.venta);
+    }
+    // Blue
+    if (map.blue) {
+      document.getElementById('dolar-blue').textContent = formatARS(map.blue.venta);
+      document.getElementById('blue-compra').textContent = formatARS(map.blue.compra);
+      document.getElementById('blue-venta').textContent = formatARS(map.blue.venta);
+    }
+    // MEP (bolsa)
+    if (map.bolsa) {
+      const mepPrice = formatARS(map.bolsa.venta);
+      document.getElementById('dolar-mep').textContent = mepPrice;
+      document.getElementById('mep-compra').textContent = formatARS(map.bolsa.compra);
+      document.getElementById('mep-venta').textContent = formatARS(map.bolsa.venta);
+      document.getElementById('hero-mep').textContent = mepPrice;
+    }
+    // CCL
+    if (map.contadoconliqui) {
+      document.getElementById('dolar-ccl').textContent = formatARS(map.contadoconliqui.venta);
+      document.getElementById('ccl-compra').textContent = formatARS(map.contadoconliqui.compra);
+      document.getElementById('ccl-venta').textContent = formatARS(map.contadoconliqui.venta);
+    }
+
+    updateTime();
+  } catch (e) {
+    console.error('Error fetching dollar rates:', e);
+    // Show fallback message
+    document.querySelectorAll('.dollar-card .price').forEach(el => {
+      if (el.textContent === '—') el.textContent = 'Sin datos';
+    });
+  }
+}
+
+// ===== FETCH INSTRUMENT DATA =====
+// Uses Netlify function proxy to get BYMA data
+async function fetchInstruments() {
+  try {
+    const res = await fetch('/.netlify/functions/cotizaciones');
+    if (!res.ok) throw new Error('API error');
+    const data = await res.json();
+
+    if (data.acciones) renderTable('acciones', data.acciones);
+    if (data.cedears) renderTable('cedears', data.cedears);
+    if (data.bonos) renderTable('bonos', data.bonos);
+    if (data.tasas) renderTasas(data.tasas);
+    if (data.merval) document.getElementById('merval-index').textContent = Number(data.merval).toLocaleString('es-AR');
+    if (data.riesgoPais) document.getElementById('riesgo-pais').textContent = data.riesgoPais;
+
+    updateTime();
+  } catch (e) {
+    console.log('Netlify function not available, using reference data');
+    loadReferenceData();
+  }
+}
+
+function renderTable(panelId, rows) {
+  const tbody = document.getElementById('tbody-' + panelId);
+  if (!tbody || !rows.length) return;
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td><span class="ticker">${r.ticker}</span></td>
+      <td><span class="name">${r.name}</span></td>
+      <td class="price-cell">${panelId === 'bonos' ? formatUSD(r.price) : formatARS(r.price)}</td>
+      <td>${formatChange(r.change)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderTasas(rows) {
+  const tbody = document.getElementById('tbody-tasas');
+  if (!tbody || !rows.length) return;
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td><span class="ticker">${r.name}</span></td>
+      <td><span class="name">${r.plazo}</span></td>
+      <td class="price-cell" style="color:var(--green)">${r.tna}</td>
+      <td class="price-cell">${r.tea || '—'}</td>
+    </tr>
+  `).join('');
+}
+
+// ===== REFERENCE DATA (fallback when no backend) =====
+function loadReferenceData() {
+  const acciones = [
+    {ticker:'GGAL', name:'Grupo Fin. Galicia', price:8245.50, change:2.15},
+    {ticker:'YPF', name:'YPF S.A.', price:42180.00, change:1.87},
+    {ticker:'PAMP', name:'Pampa Energía', price:3890.00, change:-0.42},
+    {ticker:'BBAR', name:'Banco BBVA Argentina', price:6720.00, change:1.23},
+    {ticker:'TXAR', name:'Ternium Argentina', price:1285.00, change:0.95},
+    {ticker:'TGSU2', name:'Transportadora de Gas del Sur', price:4150.00, change:0.67},
+    {ticker:'SUPV', name:'Grupo Supervielle', price:2340.00, change:-0.88},
+    {ticker:'BYMA', name:'Bolsas y Mercados Arg.', price:1890.00, change:1.45},
+    {ticker:'LOMA', name:'Loma Negra', price:1520.00, change:0.33},
+    {ticker:'ALUA', name:'Aluar', price:965.00, change:-0.21},
+  ];
+  const cedears = [
+    {ticker:'AAPL', name:'Apple Inc.', price:32450.00, change:0.85},
+    {ticker:'MSFT', name:'Microsoft Corp.', price:28900.00, change:1.12},
+    {ticker:'MELI', name:'MercadoLibre Inc.', price:185600.00, change:2.34},
+    {ticker:'GOOGL', name:'Alphabet Inc.', price:24100.00, change:0.56},
+    {ticker:'AMZN', name:'Amazon.com Inc.', price:26800.00, change:1.78},
+    {ticker:'TSLA', name:'Tesla Inc.', price:18950.00, change:-1.23},
+    {ticker:'NVDA', name:'NVIDIA Corp.', price:45200.00, change:3.45},
+    {ticker:'META', name:'Meta Platforms', price:38100.00, change:0.92},
+    {ticker:'BABA', name:'Alibaba Group', price:15400.00, change:-0.67},
+    {ticker:'KO', name:'Coca-Cola Co.', price:8900.00, change:0.15},
+  ];
+  const bonos = [
+    {ticker:'AL30', name:'Bono Soberano ARS 2030', price:72.85, change:0.45},
+    {ticker:'GD30', name:'Bono Global USD 2030', price:74.20, change:0.62},
+    {ticker:'AL35', name:'Bono Soberano ARS 2035', price:68.10, change:0.28},
+    {ticker:'GD35', name:'Bono Global USD 2035', price:70.45, change:0.51},
+    {ticker:'AL41', name:'Bono Soberano ARS 2041', price:59.30, change:-0.15},
+    {ticker:'GD41', name:'Bono Global USD 2041', price:62.80, change:0.33},
+    {ticker:'GD46', name:'Bono Global USD 2046', price:56.20, change:0.18},
+    {ticker:'AE38', name:'Bono Soberano ARS 2038', price:61.40, change:0.72},
+  ];
+  const tasas = [
+    {name:'Caución colocadora', plazo:'1 día', tna:'34.0%', tea:'39.5%'},
+    {name:'Caución colocadora', plazo:'7 días', tna:'38.5%', tea:'46.2%'},
+    {name:'Caución colocadora', plazo:'14 días', tna:'39.0%', tea:'47.0%'},
+    {name:'Caución colocadora', plazo:'30 días', tna:'40.0%', tea:'48.8%'},
+    {name:'Lecap corta', plazo:'30-60 días', tna:'40-42%', tea:'48-51%'},
+    {name:'Lecap larga', plazo:'90-180 días', tna:'42-45%', tea:'51-56%'},
+    {name:'Cheques avalados MAV', plazo:'30-90 días', tna:'39-43%', tea:'—'},
+    {name:'Plazo fijo (ref.)', plazo:'30 días', tna:'30.0%', tea:'34.5%'},
+  ];
+
+  renderTable('acciones', acciones);
+  renderTable('cedears', cedears);
+  renderTable('bonos', bonos);
+  renderTasas(tasas);
+
+  document.getElementById('merval-index').textContent = '2.184.500';
+  document.getElementById('riesgo-pais').textContent = '680';
+
+  // Mark as reference data
+  document.getElementById('update-time').textContent = 'Datos de referencia';
+}
+
+function updateTime() {
+  const now = new Date();
+  const h = now.getHours().toString().padStart(2,'0');
+  const m = now.getMinutes().toString().padStart(2,'0');
+  document.getElementById('update-time').textContent = `Actualizado ${h}:${m}`;
+}
+
+// ===== CTA FORM =====
+function submitEmail() {
+  const email = document.getElementById('cta-email').value.trim();
+  if (!email || !email.includes('@')) {
+    document.getElementById('cta-email').style.borderColor = 'var(--red)';
+    return;
+  }
+  document.getElementById('cta-form').style.display = 'none';
+  document.getElementById('cta-success').style.display = 'block';
+  // In production, this would POST to a Netlify function that saves to Supabase
+  console.log('Email registrado:', email);
+}
+
+// ===== INIT =====
+fetchDollarRates();
+fetchInstruments();
+
+// Auto-refresh every 60 seconds
+setInterval(fetchDollarRates, 60000);
+setInterval(fetchInstruments, 120000);
+</script>
+</body>
+</html>
