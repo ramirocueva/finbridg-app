@@ -1,124 +1,182 @@
 // netlify/functions/cotizaciones.js
-// FinBridge - Proxy de cotizaciones del mercado argentino
-// Obtiene datos de múltiples fuentes y los unifica para el frontend
+// FinBridge - Cotizaciones en vivo del mercado argentino
+// Fuente principal: Yahoo Finance (gratuito, sin API key)
+// Fuentes complementarias: ArgentinaDatos (Merval, Riesgo País)
 
 const CACHE = { data: null, timestamp: 0 };
-const CACHE_TTL = 60000; // 1 minuto
+const CACHE_TTL = 120000; // 2 minutos de cache
 
-// ===== FUENTES DE DATOS =====
+// ===== TICKERS =====
+const ACCIONES = [
+  { yahoo: 'GGAL.BA', ticker: 'GGAL', name: 'Grupo Fin. Galicia' },
+  { yahoo: 'YPFD.BA', ticker: 'YPF', name: 'YPF S.A.' },
+  { yahoo: 'PAMP.BA', ticker: 'PAMP', name: 'Pampa Energía' },
+  { yahoo: 'BBAR.BA', ticker: 'BBAR', name: 'Banco BBVA Argentina' },
+  { yahoo: 'TXAR.BA', ticker: 'TXAR', name: 'Ternium Argentina' },
+  { yahoo: 'TGSU2.BA', ticker: 'TGSU2', name: 'Transp. Gas del Sur' },
+  { yahoo: 'SUPV.BA', ticker: 'SUPV', name: 'Grupo Supervielle' },
+  { yahoo: 'BYMA.BA', ticker: 'BYMA', name: 'Bolsas y Mercados Arg.' },
+  { yahoo: 'LOMA.BA', ticker: 'LOMA', name: 'Loma Negra' },
+  { yahoo: 'ALUA.BA', ticker: 'ALUA', name: 'Aluar' },
+];
 
-// 1. DolarAPI - Cotizaciones de dólar (backup, el frontend ya las obtiene directo)
-async function fetchDolarAPI() {
+const CEDEARS = [
+  { yahoo: 'AAPL.BA', ticker: 'AAPL', name: 'Apple Inc.' },
+  { yahoo: 'MSFT.BA', ticker: 'MSFT', name: 'Microsoft Corp.' },
+  { yahoo: 'MELI.BA', ticker: 'MELI', name: 'MercadoLibre Inc.' },
+  { yahoo: 'GOOGL.BA', ticker: 'GOOGL', name: 'Alphabet Inc.' },
+  { yahoo: 'AMZN.BA', ticker: 'AMZN', name: 'Amazon.com Inc.' },
+  { yahoo: 'TSLA.BA', ticker: 'TSLA', name: 'Tesla Inc.' },
+  { yahoo: 'NVDA.BA', ticker: 'NVDA', name: 'NVIDIA Corp.' },
+  { yahoo: 'META.BA', ticker: 'META', name: 'Meta Platforms' },
+  { yahoo: 'BABA.BA', ticker: 'BABA', name: 'Alibaba Group' },
+  { yahoo: 'KO.BA', ticker: 'KO', name: 'Coca-Cola Co.' },
+];
+
+const BONOS = [
+  { yahoo: 'AL30.BA', ticker: 'AL30', name: 'Bono Soberano ARS 2030' },
+  { yahoo: 'GD30.BA', ticker: 'GD30', name: 'Bono Global USD 2030' },
+  { yahoo: 'AL35.BA', ticker: 'AL35', name: 'Bono Soberano ARS 2035' },
+  { yahoo: 'GD35.BA', ticker: 'GD35', name: 'Bono Global USD 2035' },
+  { yahoo: 'AL41.BA', ticker: 'AL41', name: 'Bono Soberano ARS 2041' },
+  { yahoo: 'GD41.BA', ticker: 'GD41', name: 'Bono Global USD 2041' },
+  { yahoo: 'GD46.BA', ticker: 'GD46', name: 'Bono Global USD 2046' },
+  { yahoo: 'AE38.BA', ticker: 'AE38', name: 'Bono Soberano ARS 2038' },
+];
+
+// ===== YAHOO FINANCE FETCH =====
+async function fetchYahooQuotes(symbols) {
+  const symbolStr = symbols.map(s => s.yahoo).join(',');
+  const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbolStr}&fields=regularMarketPrice,regularMarketChangePercent,shortName`;
+
   try {
-    const res = await fetch('https://dolarapi.com/v1/dolares');
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (e) {
-    console.error('DolarAPI error:', e.message);
-    return null;
-  }
-}
-
-// 2. Intentar obtener datos de BYMA Open Data
-async function fetchBYMAData() {
-  try {
-    // BYMA open data endpoint for delayed quotes
-    const res = await fetch('https://open.bymadata.com.ar/vanoms-be-core/rest/api/bymadata/free/bnown', {
-      method: 'GET',
+    const res = await fetch(url, {
       headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'application/json',
-        'User-Agent': 'FinBridge/1.0'
       }
     });
-    if (!res.ok) return null;
-    return await res.json();
+
+    if (!res.ok) {
+      console.error('Yahoo Finance error:', res.status);
+      return null;
+    }
+
+    const data = await res.json();
+    const quotes = data?.quoteResponse?.result || [];
+
+    return symbols.map(s => {
+      const q = quotes.find(qq => qq.symbol === s.yahoo);
+      if (q && q.regularMarketPrice) {
+        return {
+          ticker: s.ticker,
+          name: s.name,
+          price: q.regularMarketPrice,
+          change: q.regularMarketChangePercent ? parseFloat(q.regularMarketChangePercent.toFixed(2)) : 0,
+        };
+      }
+      return null;
+    }).filter(Boolean);
   } catch (e) {
-    console.error('BYMA error:', e.message);
+    console.error('Yahoo Finance fetch error:', e.message);
     return null;
   }
 }
 
-// 3. Intentar ArgentinaDatos API para datos complementarios
-async function fetchArgentinaDatos() {
+// ===== MERVAL INDEX =====
+async function fetchMerval() {
+  try {
+    // Try Yahoo Finance first
+    const res = await fetch('https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5EMERV&fields=regularMarketPrice', {
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const q = data?.quoteResponse?.result?.[0];
+      if (q?.regularMarketPrice) return Math.round(q.regularMarketPrice);
+    }
+  } catch (e) {}
+
+  // Fallback: ArgentinaDatos
   try {
     const res = await fetch('https://api.argentinadatos.com/v1/finanzas/indices/merval/ultimo');
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (e) {
-    return null;
-  }
+    if (res.ok) {
+      const data = await res.json();
+      return data?.valor || data?.value || null;
+    }
+  } catch (e) {}
+
+  return null;
 }
 
-// 4. Riesgo país
+// ===== RIESGO PAIS =====
 async function fetchRiesgoPais() {
   try {
     const res = await fetch('https://api.argentinadatos.com/v1/finanzas/indices/riesgo-pais/ultimo');
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (e) {
-    return null;
-  }
+    if (res.ok) {
+      const data = await res.json();
+      return data?.valor || data?.value || null;
+    }
+  } catch (e) {}
+  return null;
 }
 
-// ===== DATOS DE REFERENCIA (fallback) =====
-// Se usan cuando las APIs no responden
-// Se actualizan periódicamente con datos reales del mercado
+// ===== TASAS (referencia, no hay API gratuita) =====
+function getTasas() {
+  return [
+    { name: 'Caución colocadora', plazo: '1 día', tna: '34.0%', tea: '39.5%' },
+    { name: 'Caución colocadora', plazo: '7 días', tna: '38.5%', tea: '46.2%' },
+    { name: 'Caución colocadora', plazo: '14 días', tna: '39.0%', tea: '47.0%' },
+    { name: 'Caución colocadora', plazo: '30 días', tna: '40.0%', tea: '48.8%' },
+    { name: 'Lecap corta', plazo: '30-60 días', tna: '40-42%', tea: '48-51%' },
+    { name: 'Lecap larga', plazo: '90-180 días', tna: '42-45%', tea: '51-56%' },
+    { name: 'Cheques avalados MAV', plazo: '30-90 días', tna: '39-43%', tea: '—' },
+    { name: 'Plazo fijo (ref.)', plazo: '30 días', tna: '30.0%', tea: '34.5%' },
+  ];
+}
+
+// ===== DATOS DE REFERENCIA (fallback si Yahoo no responde) =====
 function getReferenceData() {
   return {
     acciones: [
-      { ticker: 'GGAL', name: 'Grupo Fin. Galicia', price: 8245.50, change: 2.15 },
-      { ticker: 'YPF', name: 'YPF S.A.', price: 42180.00, change: 1.87 },
-      { ticker: 'PAMP', name: 'Pampa Energía', price: 3890.00, change: -0.42 },
-      { ticker: 'BBAR', name: 'Banco BBVA Argentina', price: 6720.00, change: 1.23 },
-      { ticker: 'TXAR', name: 'Ternium Argentina', price: 1285.00, change: 0.95 },
-      { ticker: 'TGSU2', name: 'Transportadora de Gas del Sur', price: 4150.00, change: 0.67 },
-      { ticker: 'SUPV', name: 'Grupo Supervielle', price: 2340.00, change: -0.88 },
-      { ticker: 'BYMA', name: 'Bolsas y Mercados Arg.', price: 1890.00, change: 1.45 },
-      { ticker: 'LOMA', name: 'Loma Negra', price: 1520.00, change: 0.33 },
-      { ticker: 'ALUA', name: 'Aluar', price: 965.00, change: -0.21 },
+      { ticker: 'GGAL', name: 'Grupo Fin. Galicia', price: 6380.00, change: -4.25 },
+      { ticker: 'YPF', name: 'YPF S.A.', price: 54550.00, change: -1.75 },
+      { ticker: 'PAMP', name: 'Pampa Energía', price: 4895.00, change: -1.53 },
+      { ticker: 'BBAR', name: 'Banco BBVA Argentina', price: 9475.00, change: -4.66 },
+      { ticker: 'TXAR', name: 'Ternium Argentina', price: 1180.00, change: -2.15 },
+      { ticker: 'TGSU2', name: 'Transp. Gas del Sur', price: 5620.00, change: 3.50 },
+      { ticker: 'SUPV', name: 'Grupo Supervielle', price: 2870.00, change: -3.12 },
+      { ticker: 'BYMA', name: 'Bolsas y Mercados Arg.', price: 2150.00, change: -1.80 },
+      { ticker: 'LOMA', name: 'Loma Negra', price: 1740.00, change: -0.95 },
+      { ticker: 'ALUA', name: 'Aluar', price: 1085.00, change: -1.45 },
     ],
     cedears: [
-      { ticker: 'AAPL', name: 'Apple Inc.', price: 32450.00, change: 0.85 },
-      { ticker: 'MSFT', name: 'Microsoft Corp.', price: 28900.00, change: 1.12 },
-      { ticker: 'MELI', name: 'MercadoLibre Inc.', price: 185600.00, change: 2.34 },
-      { ticker: 'GOOGL', name: 'Alphabet Inc.', price: 24100.00, change: 0.56 },
-      { ticker: 'AMZN', name: 'Amazon.com Inc.', price: 26800.00, change: 1.78 },
-      { ticker: 'TSLA', name: 'Tesla Inc.', price: 18950.00, change: -1.23 },
-      { ticker: 'NVDA', name: 'NVIDIA Corp.', price: 45200.00, change: 3.45 },
-      { ticker: 'META', name: 'Meta Platforms', price: 38100.00, change: 0.92 },
-      { ticker: 'BABA', name: 'Alibaba Group', price: 15400.00, change: -0.67 },
-      { ticker: 'KO', name: 'Coca-Cola Co.', price: 8900.00, change: 0.15 },
+      { ticker: 'AAPL', name: 'Apple Inc.', price: 29800.00, change: -2.35 },
+      { ticker: 'MSFT', name: 'Microsoft Corp.', price: 55200.00, change: -1.80 },
+      { ticker: 'MELI', name: 'MercadoLibre Inc.', price: 265000.00, change: -3.10 },
+      { ticker: 'GOOGL', name: 'Alphabet Inc.', price: 22500.00, change: -2.45 },
+      { ticker: 'AMZN', name: 'Amazon.com Inc.', price: 27100.00, change: -2.90 },
+      { ticker: 'TSLA', name: 'Tesla Inc.', price: 35200.00, change: -4.50 },
+      { ticker: 'NVDA', name: 'NVIDIA Corp.', price: 15800.00, change: -3.85 },
+      { ticker: 'META', name: 'Meta Platforms', price: 80500.00, change: -2.10 },
+      { ticker: 'BABA', name: 'Alibaba Group', price: 19200.00, change: -1.75 },
+      { ticker: 'KO', name: 'Coca-Cola Co.', price: 10200.00, change: -0.60 },
     ],
     bonos: [
-      { ticker: 'AL30', name: 'Bono Soberano ARS 2030', price: 72.85, change: 0.45 },
-      { ticker: 'GD30', name: 'Bono Global USD 2030', price: 74.20, change: 0.62 },
-      { ticker: 'AL35', name: 'Bono Soberano ARS 2035', price: 68.10, change: 0.28 },
-      { ticker: 'GD35', name: 'Bono Global USD 2035', price: 70.45, change: 0.51 },
-      { ticker: 'AL41', name: 'Bono Soberano ARS 2041', price: 59.30, change: -0.15 },
-      { ticker: 'GD41', name: 'Bono Global USD 2041', price: 62.80, change: 0.33 },
-      { ticker: 'GD46', name: 'Bono Global USD 2046', price: 56.20, change: 0.18 },
-      { ticker: 'AE38', name: 'Bono Soberano ARS 2038', price: 61.40, change: 0.72 },
+      { ticker: 'AL30', name: 'Bono Soberano ARS 2030', price: 65.40, change: -1.85 },
+      { ticker: 'GD30', name: 'Bono Global USD 2030', price: 67.10, change: -1.62 },
+      { ticker: 'AL35', name: 'Bono Soberano ARS 2035', price: 58.20, change: -2.10 },
+      { ticker: 'GD35', name: 'Bono Global USD 2035', price: 61.80, change: -1.75 },
+      { ticker: 'AL41', name: 'Bono Soberano ARS 2041', price: 52.60, change: -2.30 },
+      { ticker: 'GD41', name: 'Bono Global USD 2041', price: 56.40, change: -1.90 },
+      { ticker: 'GD46', name: 'Bono Global USD 2046', price: 50.80, change: -1.55 },
+      { ticker: 'AE38', name: 'Bono Soberano ARS 2038', price: 54.90, change: -2.05 },
     ],
-    tasas: [
-      { name: 'Caución colocadora', plazo: '1 día', tna: '34.0%', tea: '39.5%' },
-      { name: 'Caución colocadora', plazo: '7 días', tna: '38.5%', tea: '46.2%' },
-      { name: 'Caución colocadora', plazo: '14 días', tna: '39.0%', tea: '47.0%' },
-      { name: 'Caución colocadora', plazo: '30 días', tna: '40.0%', tea: '48.8%' },
-      { name: 'Lecap corta', plazo: '30-60 días', tna: '40-42%', tea: '48-51%' },
-      { name: 'Lecap larga', plazo: '90-180 días', tna: '42-45%', tea: '51-56%' },
-      { name: 'Cheques avalados MAV', plazo: '30-90 días', tna: '39-43%', tea: '—' },
-      { name: 'Plazo fijo (ref.)', plazo: '30 días', tna: '30.0%', tea: '34.5%' },
-    ],
-    merval: 2184500,
-    riesgoPais: '680',
-    source: 'reference',
-    updatedAt: new Date().toISOString(),
   };
 }
 
 // ===== HANDLER PRINCIPAL =====
 exports.handler = async (event) => {
-  // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
@@ -130,7 +188,6 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
   }
-
   if (event.httpMethod !== 'GET') {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
@@ -142,37 +199,51 @@ exports.handler = async (event) => {
   }
 
   try {
-    // Try to fetch live data in parallel
-    const [bymaData, mervalData, riesgoPaisData] = await Promise.allSettled([
-      fetchBYMAData(),
-      fetchArgentinaDatos(),
+    // Fetch everything in parallel
+    const [accionesData, cedearsData, bonosData, mervalValue, riesgoPaisValue] = await Promise.allSettled([
+      fetchYahooQuotes(ACCIONES),
+      fetchYahooQuotes(CEDEARS),
+      fetchYahooQuotes(BONOS),
+      fetchMerval(),
       fetchRiesgoPais(),
     ]);
 
-    // Start with reference data as base
-    let result = getReferenceData();
+    const ref = getReferenceData();
+    let source = 'reference';
 
-    // Override with live data if available
-    if (mervalData.status === 'fulfilled' && mervalData.value) {
-      result.merval = mervalData.value.valor || mervalData.value.value || result.merval;
-      result.source = 'live';
+    // Build result: use live data if available, fallback to reference
+    const acciones = (accionesData.status === 'fulfilled' && accionesData.value && accionesData.value.length > 0)
+      ? accionesData.value : ref.acciones;
+
+    const cedears = (cedearsData.status === 'fulfilled' && cedearsData.value && cedearsData.value.length > 0)
+      ? cedearsData.value : ref.cedears;
+
+    const bonos = (bonosData.status === 'fulfilled' && bonosData.value && bonosData.value.length > 0)
+      ? bonosData.value : ref.bonos;
+
+    // If any live data came through, mark as live
+    if (acciones !== ref.acciones || cedears !== ref.cedears || bonos !== ref.bonos) {
+      source = 'live';
     }
 
-    if (riesgoPaisData.status === 'fulfilled' && riesgoPaisData.value) {
-      result.riesgoPais = riesgoPaisData.value.valor || riesgoPaisData.value.value || result.riesgoPais;
-    }
+    const merval = (mervalValue.status === 'fulfilled' && mervalValue.value)
+      ? mervalValue.value : 2865753;
 
-    // If BYMA data is available, process it
-    if (bymaData.status === 'fulfilled' && bymaData.value && Array.isArray(bymaData.value)) {
-      // Process BYMA quotes
-      const bymaParsed = parseBYMAQuotes(bymaData.value);
-      if (bymaParsed.acciones.length > 0) result.acciones = bymaParsed.acciones;
-      if (bymaParsed.cedears.length > 0) result.cedears = bymaParsed.cedears;
-      if (bymaParsed.bonos.length > 0) result.bonos = bymaParsed.bonos;
-      result.source = 'live';
-    }
+    const riesgoPais = (riesgoPaisValue.status === 'fulfilled' && riesgoPaisValue.value)
+      ? String(riesgoPaisValue.value) : '633';
 
-    result.updatedAt = new Date().toISOString();
+    if (mervalValue.status === 'fulfilled' && mervalValue.value) source = 'live';
+
+    const result = {
+      acciones,
+      cedears,
+      bonos,
+      tasas: getTasas(),
+      merval,
+      riesgoPais,
+      source,
+      updatedAt: new Date().toISOString(),
+    };
 
     // Update cache
     CACHE.data = result;
@@ -181,34 +252,12 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers, body: JSON.stringify(result) };
   } catch (err) {
     console.error('Handler error:', err);
-    // Return reference data on error
     const fallback = getReferenceData();
+    fallback.tasas = getTasas();
+    fallback.merval = 2865753;
+    fallback.riesgoPais = '633';
+    fallback.source = 'reference';
+    fallback.updatedAt = new Date().toISOString();
     return { statusCode: 200, headers, body: JSON.stringify(fallback) };
   }
 };
-
-// ===== PARSE BYMA DATA =====
-function parseBYMAQuotes(data) {
-  const accionesTickers = ['GGAL','YPF','PAMP','BBAR','TXAR','TGSU2','SUPV','BYMA','LOMA','ALUA','CEPU','COME','CRES','EDN','MIRG','TECO2','VALO'];
-  const cedearsTickers = ['AAPL','MSFT','MELI','GOOGL','AMZN','TSLA','NVDA','META','BABA','KO','DIS','NFLX','PFE','V','JPM'];
-  const bonosTickers = ['AL30','GD30','AL35','GD35','AL41','GD41','GD46','AE38','AL29','GD29'];
-
-  const acciones = [];
-  const cedears = [];
-  const bonos = [];
-
-  data.forEach(item => {
-    const ticker = item.symbol || item.ticker || '';
-    const price = item.last || item.price || item.ultimoPrecio || 0;
-    const change = item.change || item.variacionPorcentual || 0;
-    const name = item.description || item.nombre || ticker;
-
-    const row = { ticker, name, price: Number(price), change: Number(change) };
-
-    if (accionesTickers.includes(ticker)) acciones.push(row);
-    else if (cedearsTickers.includes(ticker)) cedears.push(row);
-    else if (bonosTickers.includes(ticker)) bonos.push(row);
-  });
-
-  return { acciones, cedears, bonos };
-}
