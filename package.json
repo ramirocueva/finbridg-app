@@ -1,0 +1,11 @@
+{
+  "name": "finbridge-landing",
+  "version": "1.0.0",
+  "description": "FinBridge - Agente de Negociación AI-Powered para el mercado de capitales argentino",
+  "scripts": {
+    "dev": "netlify dev"
+  },
+  "dependencies": {
+    "yahoo-finance2": "^2.14.0"
+  }
+}
