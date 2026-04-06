@@ -1,7 +1,9 @@
 // netlify/functions/cotizaciones.js
 // FinBridge - Cotizaciones en vivo del mercado argentino
-// Fuente principal: Yahoo Finance (gratuito, sin API key)
+// Fuente: yahoo-finance2 (maneja autenticación automáticamente)
 // Fuentes complementarias: ArgentinaDatos (Merval, Riesgo País)
+
+const yahooFinance = require('yahoo-finance2').default;
 
 const CACHE = { data: null, timestamp: 0 };
 const CACHE_TTL = 120000; // 2 minutos de cache
@@ -44,41 +46,33 @@ const BONOS = [
   { yahoo: 'AE38.BA', ticker: 'AE38', name: 'Bono Soberano ARS 2038' },
 ];
 
-// ===== YAHOO FINANCE FETCH =====
-async function fetchYahooQuotes(symbols) {
-  const symbolStr = symbols.map(s => s.yahoo).join(',');
-  const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbolStr}&fields=regularMarketPrice,regularMarketChangePercent,shortName`;
-
+// ===== YAHOO FINANCE 2 FETCH =====
+async function fetchQuotes(symbols) {
   try {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/json',
-      }
-    });
+    const yahooSymbols = symbols.map(s => s.yahoo);
 
-    if (!res.ok) {
-      console.error('Yahoo Finance error:', res.status);
-      return null;
-    }
+    // yahoo-finance2 maneja cookies/crumb automáticamente
+    const results = await yahooFinance.quote(yahooSymbols);
 
-    const data = await res.json();
-    const quotes = data?.quoteResponse?.result || [];
+    // quote() puede retornar un objeto si es 1 símbolo, o array si son varios
+    const quotesArray = Array.isArray(results) ? results : [results];
 
     return symbols.map(s => {
-      const q = quotes.find(qq => qq.symbol === s.yahoo);
+      const q = quotesArray.find(qq => qq && qq.symbol === s.yahoo);
       if (q && q.regularMarketPrice) {
         return {
           ticker: s.ticker,
           name: s.name,
           price: q.regularMarketPrice,
-          change: q.regularMarketChangePercent ? parseFloat(q.regularMarketChangePercent.toFixed(2)) : 0,
+          change: q.regularMarketChangePercent
+            ? parseFloat(q.regularMarketChangePercent.toFixed(2))
+            : 0,
         };
       }
       return null;
     }).filter(Boolean);
   } catch (e) {
-    console.error('Yahoo Finance fetch error:', e.message);
+    console.error('yahoo-finance2 fetch error:', e.message);
     return null;
   }
 }
@@ -86,16 +80,13 @@ async function fetchYahooQuotes(symbols) {
 // ===== MERVAL INDEX =====
 async function fetchMerval() {
   try {
-    // Try Yahoo Finance first
-    const res = await fetch('https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5EMERV&fields=regularMarketPrice', {
-      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' }
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const q = data?.quoteResponse?.result?.[0];
-      if (q?.regularMarketPrice) return Math.round(q.regularMarketPrice);
+    const result = await yahooFinance.quote('^MERV');
+    if (result && result.regularMarketPrice) {
+      return Math.round(result.regularMarketPrice);
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error('Merval yahoo error:', e.message);
+  }
 
   // Fallback: ArgentinaDatos
   try {
@@ -121,7 +112,7 @@ async function fetchRiesgoPais() {
   return null;
 }
 
-// ===== TASAS (referencia, no hay API gratuita) =====
+// ===== TASAS (referencia) =====
 function getTasas() {
   return [
     { name: 'Caución colocadora', plazo: '1 día', tna: '34.0%', tea: '39.5%' },
@@ -201,9 +192,9 @@ exports.handler = async (event) => {
   try {
     // Fetch everything in parallel
     const [accionesData, cedearsData, bonosData, mervalValue, riesgoPaisValue] = await Promise.allSettled([
-      fetchYahooQuotes(ACCIONES),
-      fetchYahooQuotes(CEDEARS),
-      fetchYahooQuotes(BONOS),
+      fetchQuotes(ACCIONES),
+      fetchQuotes(CEDEARS),
+      fetchQuotes(BONOS),
       fetchMerval(),
       fetchRiesgoPais(),
     ]);
