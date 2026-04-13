@@ -1,1 +1,460 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel Admin — FinBridge</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --negro:      #0A0A0A;
+      --negro-card: #141414;
+      --negro-med:  #1C1C1C;
+      --negro-borde:#2A2A2A;
+      --dorado:     #C9A84C;
+      --dorado-dark:#A8893A;
+      --blanco:     #FFFFFF;
+      --gris:       #9CA3AF;
+      --gris-claro: #E5E7EB;
+      --rojo:       #EF4444;
+      --verde:      #22C55E;
+      --azul:       #3B82F6;
+      --trans:      all .25s ease;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--negro);
+      color: var(--blanco);
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ────────────────────────────────────────────── */
+    .admin-header {
+      background: var(--negro-card);
+      border-bottom: 1px solid var(--negro-borde);
+      padding: 0 32px; height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .admin-header .left { display: flex; align-items: center; gap: 16px; }
+    .logo-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--dorado), var(--dorado-dark));
+      display: flex; align-items: center; justify-content: center;
+      color: var(--negro); font-size: .9rem;
+    }
+    .admin-header h1 { font-size: 1.05rem; font-weight: 700; }
+    .admin-header h1 span { color: var(--dorado); font-size: .8rem; font-weight: 500; margin-left: 8px; }
+    .admin-header .right { display: flex; align-items: center; gap: 16px; }
+    .btn-back {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--negro-med); border: 1px solid var(--negro-borde);
+      color: var(--gris-claro); font-family: inherit;
+      font-size: .82rem; font-weight: 600;
+      padding: 8px 16px; border-radius: 8px; cursor: pointer;
+      text-decoration: none; transition: var(--trans);
+    }
+    .btn-back:hover { border-color: var(--dorado); color: var(--dorado); }
+
+    /* ── CUERPO ────────────────────────────────────────────── */
+    .admin-body { max-width: 1200px; margin: 0 auto; padding: 32px; }
+
+    /* Stats */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px; margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--negro-card); border: 1px solid var(--negro-borde);
+      border-radius: 12px; padding: 20px; text-align: center;
+    }
+    .stat-card .number { font-size: 2rem; font-weight: 700; color: var(--dorado); }
+    .stat-card .label {
+      font-size: .78rem; color: var(--gris); margin-top: 4px;
+      text-transform: uppercase; letter-spacing: .04em; font-weight: 600;
+    }
+
+    /* Filtros */
+    .filters {
+      display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;
+      align-items: center;
+    }
+    .filter-input {
+      flex: 1; min-width: 200px; padding: 10px 14px 10px 38px;
+      background: var(--negro-card); border: 1px solid var(--negro-borde);
+      border-radius: 8px; color: var(--blanco);
+      font-family: inherit; font-size: .88rem; outline: none;
+      transition: var(--trans);
+    }
+    .filter-input:focus { border-color: var(--dorado); }
+    .filter-wrapper { position: relative; flex: 1; min-width: 200px; }
+    .filter-wrapper i {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      color: var(--gris); font-size: .85rem; pointer-events: none;
+    }
+    .filter-select {
+      padding: 10px 14px; background: var(--negro-card);
+      border: 1px solid var(--negro-borde); border-radius: 8px;
+      color: var(--blanco); font-family: inherit; font-size: .85rem;
+      cursor: pointer; outline: none; transition: var(--trans);
+    }
+    .filter-select:focus { border-color: var(--dorado); }
+    .filter-select option { background: var(--negro-card); }
+    .btn-refresh {
+      padding: 10px 18px; background: rgba(201,168,76,.1);
+      border: 1px solid rgba(201,168,76,.25);
+      color: var(--dorado); font-family: inherit;
+      font-size: .85rem; font-weight: 600;
+      border-radius: 8px; cursor: pointer; transition: var(--trans);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .btn-refresh:hover { background: rgba(201,168,76,.2); }
+
+    /* Tabla de usuarios */
+    .card {
+      background: var(--negro-card); border: 1px solid var(--negro-borde);
+      border-radius: 12px; overflow: hidden;
+    }
+    .table-wrapper { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+    thead th {
+      text-align: left; padding: 14px 18px;
+      font-size: .7rem; font-weight: 700; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--gris);
+      background: var(--negro-med); border-bottom: 1px solid var(--negro-borde);
+    }
+    tbody tr { border-bottom: 1px solid var(--negro-borde); transition: var(--trans); }
+    tbody tr:hover { background: rgba(255,255,255,.02); }
+    td { padding: 14px 18px; }
+    .td-user { display: flex; align-items: center; gap: 12px; }
+    .user-avatar-sm {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--dorado), var(--dorado-dark));
+      display: flex; align-items: center; justify-content: center;
+      color: var(--negro); font-weight: 700; font-size: .72rem;
+    }
+    .user-name-sm { font-weight: 600; }
+    .user-email-sm { font-size: .72rem; color: var(--gris); }
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 50px;
+      font-size: .7rem; font-weight: 700;
+    }
+    .badge-conservador { background: rgba(59,130,246,.12); color: var(--azul); }
+    .badge-moderado { background: rgba(201,168,76,.12); color: var(--dorado); }
+    .badge-agresivo { background: rgba(239,68,68,.12); color: var(--rojo); }
+    .badge-fisica { background: rgba(255,255,255,.06); color: var(--gris-claro); }
+    .badge-pyme { background: rgba(34,197,94,.12); color: var(--verde); }
+    .badge-admin { background: rgba(201,168,76,.15); color: var(--dorado); font-size: .68rem; }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center; padding: 60px 24px; color: var(--gris);
+    }
+    .empty-state i { font-size: 2.5rem; color: var(--negro-borde); margin-bottom: 16px; }
+    .empty-state p { font-size: .9rem; }
+
+    /* Denied state */
+    .denied {
+      min-height: calc(100vh - 64px);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px; text-align: center; padding: 32px;
+    }
+    .denied i { font-size: 3rem; color: var(--rojo); }
+    .denied h2 { font-size: 1.3rem; }
+    .denied p { color: var(--gris); max-width: 400px; }
+    .denied.hidden { display: none; }
+
+    .admin-content.hidden { display: none; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .admin-body { padding: 20px 16px; }
+      .admin-header { padding: 0 16px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* Loading */
+    .loading-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--negro);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px;
+    }
+    .loading-overlay.hidden { display: none; }
+    .loading-spinner {
+      width: 44px; height: 44px; border: 3px solid var(--negro-borde);
+      border-top-color: var(--dorado); border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: .88rem; color: var(--gris); }
+  </style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Verificando permisos...</div>
+</div>
+
+<!-- HEADER -->
+<header class="admin-header">
+  <div class="left">
+    <div class="logo-icon"><i class="fas fa-bridge"></i></div>
+    <h1>Panel Admin <span>FinBridge IA</span></h1>
+  </div>
+  <div class="right">
+    <a href="dashboard.html" class="btn-back">
+      <i class="fas fa-arrow-left"></i> Volver al Dashboard
+    </a>
+  </div>
+</header>
+
+<!-- ACCESO DENEGADO -->
+<div class="denied" id="deniedState">
+  <i class="fas fa-shield-exclamation"></i>
+  <h2>Acceso denegado</h2>
+  <p>No tenés permisos de administrador. Si creés que esto es un error, contactá al equipo de FinBridge.</p>
+  <a href="dashboard.html" class="btn-back" style="margin-top:8px;">
+    <i class="fas fa-arrow-left"></i> Ir al Dashboard
+  </a>
+</div>
+
+<!-- CONTENIDO ADMIN -->
+<div class="admin-content hidden" id="adminContent">
+  <div class="admin-body">
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="number" id="statTotal">0</div>
+        <div class="label">Usuarios totales</div>
+      </div>
+      <div class="stat-card">
+        <div class="number" id="statFisica">0</div>
+        <div class="label">Personas físicas</div>
+      </div>
+      <div class="stat-card">
+        <div class="number" id="statPyme">0</div>
+        <div class="label">PyMEs</div>
+      </div>
+      <div class="stat-card">
+        <div class="number" id="statHoy">0</div>
+        <div class="label">Registros hoy</div>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters">
+      <div class="filter-wrapper">
+        <i class="fas fa-search"></i>
+        <input type="text" class="filter-input" id="searchInput"
+               placeholder="Buscar por nombre, email o CUIT..." />
+      </div>
+      <select class="filter-select" id="filterTipo">
+        <option value="">Todos los tipos</option>
+        <option value="fisica">Persona Física</option>
+        <option value="pyme">PyME</option>
+      </select>
+      <select class="filter-select" id="filterPerfil">
+        <option value="">Todos los perfiles</option>
+        <option value="conservador">Conservador</option>
+        <option value="moderado">Moderado</option>
+        <option value="agresivo">Agresivo</option>
+      </select>
+      <button class="btn-refresh" id="refreshBtn">
+        <i class="fas fa-rotate"></i> Actualizar
+      </button>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card">
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>CUIT</th>
+              <th>Tipo</th>
+              <th>Perfil Inversor</th>
+              <th>Teléfono</th>
+              <th>Registrado</th>
+              <th>Rol</th>
+            </tr>
+          </thead>
+          <tbody id="usersTable">
+            <!-- Se llena dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+      <div class="empty-state hidden" id="emptyState">
+        <i class="fas fa-users-slash"></i>
+        <p>No se encontraron usuarios con esos filtros.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── Supabase ────────────────────────────────────────────────
+  const SUPABASE_URL = 'https://hvncglkziyuclnwgrfgj.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_43vDXqAmhBtNpnBnkEU8og_BmOSEe1W';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let todosLosUsuarios = [];
+
+  // ── Init: verificar sesión y permisos admin ─────────────────
+  async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+
+    if (!session) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    // Verificar si es admin
+    const { data: perfil } = await sb
+      .from('perfiles')
+      .select('es_admin')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!perfil?.es_admin) {
+      document.getElementById('loadingOverlay').classList.add('hidden');
+      document.getElementById('deniedState').classList.remove('hidden');
+      return;
+    }
+
+    // Es admin: mostrar contenido
+    document.getElementById('deniedState').classList.add('hidden');
+    document.getElementById('deniedState').style.display = 'none';
+    document.getElementById('adminContent').classList.remove('hidden');
+    document.getElementById('loadingOverlay').classList.add('hidden');
+
+    await cargarUsuarios();
+  }
+
+  // ── Cargar usuarios ─────────────────────────────────────────
+  async function cargarUsuarios() {
+    const { data, error } = await sb
+      .from('perfiles')
+      .select('*')
+      .order('creado_en', { ascending: false });
+
+    if (error) {
+      console.error('Error cargando usuarios:', error);
+      return;
+    }
+
+    todosLosUsuarios = data || [];
+    actualizarStats();
+    renderTabla(todosLosUsuarios);
+  }
+
+  // ── Actualizar estadísticas ─────────────────────────────────
+  function actualizarStats() {
+    const total  = todosLosUsuarios.length;
+    const fisica = todosLosUsuarios.filter(u => u.tipo_persona === 'fisica').length;
+    const pyme   = todosLosUsuarios.filter(u => u.tipo_persona === 'pyme').length;
+    const hoy    = todosLosUsuarios.filter(u => {
+      const creado = new Date(u.creado_en);
+      const ahora  = new Date();
+      return creado.toDateString() === ahora.toDateString();
+    }).length;
+
+    document.getElementById('statTotal').textContent  = total;
+    document.getElementById('statFisica').textContent = fisica;
+    document.getElementById('statPyme').textContent   = pyme;
+    document.getElementById('statHoy').textContent    = hoy;
+  }
+
+  // ── Renderizar tabla ────────────────────────────────────────
+  function renderTabla(usuarios) {
+    const tbody = document.getElementById('usersTable');
+    const empty = document.getElementById('emptyState');
+
+    if (!usuarios.length) {
+      tbody.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+
+    tbody.innerHTML = usuarios.map(u => {
+      const iniciales = ((u.nombre?.[0] || '') + (u.apellido?.[0] || '')).toUpperCase() || '??';
+      const nombre    = (u.nombre || '') + ' ' + (u.apellido || '');
+      const fecha     = new Date(u.creado_en).toLocaleDateString('es-AR');
+      const tipoBadge = u.tipo_persona === 'pyme'
+        ? '<span class="badge badge-pyme">PyME</span>'
+        : '<span class="badge badge-fisica">Persona Física</span>';
+      const perfilBadge = u.perfil_inversor
+        ? `<span class="badge badge-${u.perfil_inversor}">${u.perfil_inversor.charAt(0).toUpperCase() + u.perfil_inversor.slice(1)}</span>`
+        : '<span style="color:var(--gris)">-</span>';
+      const adminBadge = u.es_admin
+        ? ' <span class="badge badge-admin"><i class="fas fa-crown"></i> Admin</span>'
+        : '';
+
+      return `
+        <tr>
+          <td>
+            <div class="td-user">
+              <div class="user-avatar-sm">${iniciales}</div>
+              <div>
+                <div class="user-name-sm">${nombre.trim() || 'Sin nombre'}${adminBadge}</div>
+                <div class="user-email-sm">${u.id.slice(0, 8)}...</div>
+              </div>
+            </div>
+          </td>
+          <td>${u.cuit || '<span style="color:var(--gris)">-</span>'}</td>
+          <td>${tipoBadge}</td>
+          <td>${perfilBadge}</td>
+          <td>${u.telefono || '<span style="color:var(--gris)">-</span>'}</td>
+          <td>${fecha}</td>
+          <td>${u.es_admin ? '<span class="badge badge-admin">Admin</span>' : '<span style="color:var(--gris);font-size:.78rem;">Usuario</span>'}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // ── Filtros ─────────────────────────────────────────────────
+  function aplicarFiltros() {
+    const busqueda = document.getElementById('searchInput').value.toLowerCase();
+    const tipo     = document.getElementById('filterTipo').value;
+    const perfil   = document.getElementById('filterPerfil').value;
+
+    let filtrados = [...todosLosUsuarios];
+
+    if (busqueda) {
+      filtrados = filtrados.filter(u =>
+        (u.nombre || '').toLowerCase().includes(busqueda) ||
+        (u.apellido || '').toLowerCase().includes(busqueda) ||
+        (u.cuit || '').includes(busqueda)
+      );
+    }
+    if (tipo) {
+      filtrados = filtrados.filter(u => u.tipo_persona === tipo);
+    }
+    if (perfil) {
+      filtrados = filtrados.filter(u => u.perfil_inversor === perfil);
+    }
+
+    renderTabla(filtrados);
+  }
+
+  document.getElementById('searchInput').addEventListener('input', aplicarFiltros);
+  document.getElementById('filterTipo').addEventListener('change', aplicarFiltros);
+  document.getElementById('filterPerfil').addEventListener('change', aplicarFiltros);
+  document.getElementById('refreshBtn').addEventListener('click', cargarUsuarios);
+
+  // ── Arrancar ────────────────────────────────────────────────
+  init();
+</script>
+</body>
+</html>
