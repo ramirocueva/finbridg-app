@@ -546,10 +546,9 @@ async function fetchDollarRates() {
 }
 
 // ===== FETCH INSTRUMENT DATA =====
-// Uses Netlify function proxy to get BYMA data
 async function fetchInstruments() {
   try {
-    const res = await fetch('/.netlify/functions/cotizaciones');
+    const res = await fetch('/api/mercado');
     if (!res.ok) throw new Error('API error');
     const data = await res.json();
 
@@ -562,8 +561,8 @@ async function fetchInstruments() {
 
     updateTime();
   } catch (e) {
-    console.log('Netlify function not available, using reference data');
-    loadReferenceData();
+            console.error('Error fetching market data:', e);
+                  loadReferenceData();
   }
 }
 
