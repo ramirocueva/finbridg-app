@@ -435,7 +435,7 @@
   // ── Configuración de Supabase ──────────────────────────────
   const SUPABASE_URL = 'https://hvncglkziyuclnwgrfgj.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_43vDXqAmhBtNpnBnkEU8og_BmOSEe1W';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // ── Estado del perfil seleccionado ─────────────────────────
   let perfilSeleccionado = 'moderado';
@@ -544,7 +544,7 @@
 
     try {
       // 1. Registrar usuario en Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await sb.auth.signUp({
         email,
         password,
         options: {
@@ -602,7 +602,7 @@
   });
 
   // ── Si el usuario ya está logueado, redirigir al dashboard ─
-  supabase.auth.getSession().then(({ data: { session } }) => {
+  sb.auth.getSession().then(({ data: { session } }) => {
     if (session) window.location.href = 'dashboard.html';
   });
 </script>
