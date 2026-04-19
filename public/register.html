@@ -129,7 +129,7 @@
     }
     .form-group input,
     .form-group select {
-      width: 100%; padding: 13px 14px 13px 42px;
+      width: 100%; padding: 13px 42px 13px 42px;
       background: var(--negro-med); border: 1.5px solid var(--negro-borde);
       border-radius: 8px; color: var(--blanco);
       font-family: inherit; font-size: .9rem;
@@ -560,7 +560,7 @@
       // 2. Actualizar el perfil con datos adicionales
       // (el trigger ya creó el perfil básico, ahora lo completamos)
       if (data.user) {
-        const { error: profileError } = await supabase
+        const { error: profileError } = await sb
           .from('perfiles')
           .update({
             cuit,
