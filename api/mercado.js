@@ -1,5 +1,5 @@
 // api/mercado.js - Vercel Serverless Function
-// Cookie + crumb flow correcto para Yahoo Finance
+// Usa v8/finance/chart por simbolo (no requiere crumb)
 
 const ACCIONES = ['GGAL.BA','YPF.BA','PAMP.BA','BBAR.BA','TXAR.BA','ALUA.BA','CRES.BA','LOMA.BA','SUPV.BA','BMA.BA','CEPU.BA','TECO2.BA'];
 const CEDEARS  = ['AAPL.BA','MSFT.BA','MELI.BA','GOOGL.BA','AMZN.BA','TSLA.BA','META.BA'];
@@ -10,88 +10,66 @@ const NOMBRES  = {
         'AAPL.BA':'Apple','MSFT.BA':'Microsoft','MELI.BA':'MercadoLibre','GOOGL.BA':'Alphabet',
           'AMZN.BA':'Amazon','TSLA.BA':'Tesla','META.BA':'Meta'
           };
-
           const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-          async function getYahooCrumb() {
-            // Paso 1: obtener cookies de la homepage de Yahoo Finance
-              const r1 = await fetch('https://finance.yahoo.com/?lang=en-US&region=US', {
-                  headers: { 'User-Agent': UA, 'Accept': 'text/html,application/xhtml+xml', 'Accept-Language': 'en-US,en;q=0.9' },
-                      redirect: 'follow',
-                        });
+          async function fetchChart(symbol) {
+            var encoded = encodeURIComponent(symbol);
+              var url = 'https://query2.finance.yahoo.com/v8/finance/chart/' + encoded + '?range=1d&interval=1d&includePrePost=false';
+                var res = await fetch(url, {
+                    headers: {
+                          'User-Agent': UA,
+                                'Accept': 'application/json',
+                                      'Referer': 'https://finance.yahoo.com/'
+                                          }
+                                            });
+                                              if (!res.ok) return null;
+                                                var data = await res.json();
+                                                  var result = data.chart && data.chart.result && data.chart.result[0];
+                                                    if (!result) return null;
+                                                      var meta = result.meta;
+                                                        var price = meta.regularMarketPrice;
+                                                          var prev = meta.chartPreviousClose || meta.previousClose || price;
+                                                            var change = prev ? ((price - prev) / prev * 100) : 0;
+                                                              return { price: price, change: change };
+                                                              }
 
-                          // Extraer todas las cookies (Node 18+ tiene getSetCookie, sino usamos get)
-                            var allCookies = '';
-                              try {
-                                  var cookieArr = r1.headers.getSetCookie();
-                                      allCookies = cookieArr.map(function(c) { return c.split(';')[0]; }).join('; ');
-                                        } catch(e) {
-                                            var raw = r1.headers.get('set-cookie') || '';
-                                                allCookies = raw.split(',').map(function(c) { return c.split(';')[0].trim(); }).filter(function(c) { return c.indexOf('=') > -1; }).join('; ');
-                                                  }
+                                                              module.exports = async function(req, res) {
+                                                                res.setHeader('Access-Control-Allow-Origin', '*');
+                                                                  res.setHeader('Access-Control-Allow-Methods', 'GET');
+                                                                    res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=60');
+                                                                      try {
+                                                                          var allSymbols = ACCIONES.concat(CEDEARS).concat(['^MERV']);
+                                                                              var fetchPromises = allSymbols.map(function(sym) { return fetchChart(sym); });
+                                                                                  var rpPromise = fetch('https://api.argentinadatos.com/v1/finanzas/indices/riesgo-pais/ultimos/1');
 
-                                                    // Paso 2: obtener crumb con esas cookies
-                                                      var r2 = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', {
-                                                          headers: { 'User-Agent': UA, 'Cookie': allCookies, 'Accept': '*/*', 'Referer': 'https://finance.yahoo.com' },
-                                                            });
-                                                              if (!r2.ok) throw new Error('Crumb HTTP ' + r2.status);
-                                                                var crumb = await r2.text();
-                                                                  if (!crumb || crumb.indexOf('<') > -1 || crumb.length < 4) throw new Error('Crumb invalido: ' + crumb.slice(0, 30));
-                                                                    return { cookie: allCookies, crumb: crumb };
-                                                                    }
+                                                                                      var results = await Promise.allSettled(fetchPromises);
+                                                                                          var rpRes = await rpPromise;
 
-                                                                    module.exports = async function(req, res) {
-                                                                      res.setHeader('Access-Control-Allow-Origin', '*');
-                                                                        res.setHeader('Access-Control-Allow-Methods', 'GET');
-                                                                          res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=60');
+                                                                                              var riesgoPais = null;
+                                                                                                  if (rpRes.ok) {
+                                                                                                        var rpData = await rpRes.json();
+                                                                                                              if (Array.isArray(rpData) && rpData.length > 0) riesgoPais = rpData[0].valor;
+                                                                                                                  }
 
-                                                                            try {
-                                                                                var symbols = ACCIONES.concat(CEDEARS).concat(['^MERV']).join(',');
+                                                                                                                      function mapResult(sym, idx) {
+                                                                                                                            var r = results[idx];
+                                                                                                                                  if (r.status !== 'fulfilled' || !r.value) return null;
+                                                                                                                                        return {
+                                                                                                                                                ticker: sym.replace('.BA',''),
+                                                                                                                                                        name: NOMBRES[sym] || sym,
+                                                                                                                                                                price: r.value.price,
+                                                                                                                                                                        change: r.value.change
+                                                                                                                                                                              };
+                                                                                                                                                                                  }
 
-                                                                                    var results = await Promise.allSettled([
-                                                                                          getYahooCrumb(),
-                                                                                                fetch('https://api.argentinadatos.com/v1/finanzas/indices/riesgo-pais/ultimos/1'),
-                                                                                                    ]);
-                                                                                                        var authResult = results[0];
-                                                                                                            var rpResult   = results[1];
+                                                                                                                                                                                      var acciones = ACCIONES.map(function(sym, i) { return mapResult(sym, i); }).filter(function(x) { return x !== null; });
+                                                                                                                                                                                          var cedears  = CEDEARS.map(function(sym, i) { return mapResult(sym, ACCIONES.length + i); }).filter(function(x) { return x !== null; });
+                                                                                                                                                                                              var mervIdx  = ACCIONES.length + CEDEARS.length;
+                                                                                                                                                                                                  var mervR    = results[mervIdx];
+                                                                                                                                                                                                      var merval   = (mervR.status === 'fulfilled' && mervR.value) ? mervR.value.price : null;
 
-                                                                                                                var riesgoPais = null;
-                                                                                                                    if (rpResult.status === 'fulfilled' && rpResult.value.ok) {
-                                                                                                                          var rpData = await rpResult.value.json();
-                                                                                                                                if (Array.isArray(rpData) && rpData.length > 0) riesgoPais = rpData[0].valor;
-                                                                                                                                    }
-
-                                                                                                                                        if (authResult.status !== 'fulfilled') throw new Error('Auth: ' + authResult.reason);
-                                                                                                                                            var cookie = authResult.value.cookie;
-                                                                                                                                                var crumb  = authResult.value.crumb;
-
-                                                                                                                                                    var yhUrl = 'https://query1.finance.yahoo.com/v7/finance/quote?symbols=' +
-                                                                                                                                                          encodeURIComponent(symbols) + '&crumb=' + encodeURIComponent(crumb) + '&lang=en&region=US';
-
-                                                                                                                                                              var yhRes = await fetch(yhUrl, {
-                                                                                                                                                                    headers: { 'User-Agent': UA, 'Cookie': cookie, 'Accept': 'application/json', 'Referer': 'https://finance.yahoo.com' },
-                                                                                                                                                                        });
-                                                                                                                                                                            if (!yhRes.ok) throw new Error('Yahoo HTTP ' + yhRes.status);
-                                                                                                                                                                                var yhData = await yhRes.json();
-                                                                                                                                                                                    var quotes = (yhData.quoteResponse && yhData.quoteResponse.result) || [];
-
-                                                                                                                                                                                        var bySymbol = {};
-                                                                                                                                                                                            quotes.forEach(function(q) { if (q && q.symbol) bySymbol[q.symbol] = q; });
-
-                                                                                                                                                                                                function mapQ(sym) {
-                                                                                                                                                                                                      var q = bySymbol[sym];
-                                                                                                                                                                                                            if (!q) return null;
-                                                                                                                                                                                                                  return { ticker: sym.replace('.BA',''), name: NOMBRES[sym] || sym, price: q.regularMarketPrice || 0, change: q.regularMarketChangePercent || 0 };
-                                                                                                                                                                                                                      }
-
-                                                                                                                                                                                                                          var acciones = ACCIONES.map(mapQ).filter(function(x){ return x !== null; });
-                                                                                                                                                                                                                              var cedears  = CEDEARS.map(mapQ).filter(function(x){ return x !== null; });
-                                                                                                                                                                                                                                  var mq = bySymbol['^MERV'];
-                                                                                                                                                                                                                                      var merval = mq ? mq.regularMarketPrice : null;
-
-                                                                                                                                                                                                                                          res.status(200).json({ acciones: acciones, cedears: cedears, bonos: [], tasas: [], merval: merval, riesgoPais: riesgoPais });
-
-                                                                                                                                                                                                                                            } catch (error) {
-                                                                                                                                                                                                                                                res.status(500).json({ error: error.message });
-                                                                                                                                                                                                                                                  }
-                                                                                                                                                                                                                                                  };
+                                                                                                                                                                                                          res.status(200).json({ acciones: acciones, cedears: cedears, bonos: [], tasas: [], merval: merval, riesgoPais: riesgoPais });
+                                                                                                                                                                                                            } catch (error) {
+                                                                                                                                                                                                                res.status(500).json({ error: error.message });
+                                                                                                                                                                                                                  }
+                                                                                                                                                                                                                  };
