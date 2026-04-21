@@ -235,7 +235,7 @@
   // ── Supabase config ────────────────────────────────────────
   const SUPABASE_URL = 'https://hvncglkziyuclnwgrfgj.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_43vDXqAmhBtNpnBnkEU8og_BmOSEe1W';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // ── Toggle contraseña ──────────────────────────────────────
   function togglePass() {
@@ -279,7 +279,7 @@
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Ingresando...';
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await sb.auth.signInWithPassword({
         email,
         password,
       });
@@ -319,7 +319,7 @@
       return;
     }
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/login.html',
       });
       if (error) throw error;
@@ -330,7 +330,7 @@
   });
 
   // ── Si ya está logueado, redirigir ─────────────────────────
-  supabase.auth.getSession().then(({ data: { session } }) => {
+  sb.auth.getSession().then(({ data: { session } }) => {
     if (session) window.location.href = 'dashboard.html';
   });
 </script>
