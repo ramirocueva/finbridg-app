@@ -4,573 +4,897 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mi Portafolio — FinBridge</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-
   <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     :root {
-      --negro:      #0A0A0A;
-      --negro-card: #141414;
-      --negro-med:  #1C1C1C;
-      --negro-borde:#2A2A2A;
-      --dorado:     #C9A84C;
-      --dorado-claro:#D4B96A;
-      --dorado-dark:#A8893A;
-      --blanco:     #FFFFFF;
-      --gris:       #9CA3AF;
-      --gris-claro: #E5E7EB;
-      --rojo:       #EF4444;
-      --verde:      #22C55E;
-      --sidebar-w:  250px;
-      --trans:      all .25s ease;
+      --bg:          #0D0D0D;
+      --card:        #131313;
+      --card2:       #191919;
+      --border:      #252525;
+      --border2:     #2E2E2E;
+      --gold:        #C9A84C;
+      --gold-lt:     #D4B96A;
+      --gold-dk:     #A8893A;
+      --gold-bg:     rgba(201,168,76,.08);
+      --gold-bg2:    rgba(201,168,76,.14);
+      --white:       #FFFFFF;
+      --gray:        #6B7280;
+      --gray-lt:     #9CA3AF;
+      --green:       #22C55E;
+      --green-bg:    rgba(34,197,94,.10);
+      --red:         #EF4444;
+      --red-bg:      rgba(239,68,68,.10);
+      --blue:        #3B82F6;
+      --sidebar-w:   256px;
+      --trans:       all .2s ease;
+      --radius:      12px;
     }
+    body { font-family:'Poppins',sans-serif; background:var(--bg); color:var(--white); min-height:100vh; }
+    .layout { display:flex; min-height:100vh; }
 
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: var(--negro);
-      color: var(--blanco);
-      min-height: 100vh;
-    }
-
-    .layout { display: flex; min-height: 100vh; }
-
-    /* ── SIDEBAR ───────────────────────────────────────────── */
+    /* ─── SIDEBAR ──────────────────────────────────── */
     .sidebar {
-      width: var(--sidebar-w);
-      background: var(--negro-card);
-      border-right: 1px solid var(--negro-borde);
-      position: fixed; top: 0; left: 0; height: 100vh;
-      display: flex; flex-direction: column;
-      z-index: 200; transition: var(--trans);
+      width:var(--sidebar-w); background:var(--card); border-right:1px solid var(--border);
+      position:fixed; top:0; left:0; height:100vh; display:flex; flex-direction:column; z-index:200;
     }
-    .sidebar-logo {
-      padding: 24px; border-bottom: 1px solid var(--negro-borde);
-      display: flex; align-items: center; gap: 10px;
+    .sb-logo {
+      padding:22px 24px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:10px;
     }
-    .logo-icon {
-      width: 38px; height: 38px; border-radius: 8px;
-      background: linear-gradient(135deg, var(--dorado), var(--dorado-dark));
-      display: flex; align-items: center; justify-content: center;
-      color: var(--negro); font-size: 1rem;
+    .sb-logo-icon {
+      width:36px; height:36px; border-radius:8px;
+      background:linear-gradient(135deg,var(--gold),var(--gold-dk));
+      display:flex; align-items:center; justify-content:center; color:#000; font-size:.9rem;
     }
-    .logo-text { font-size: 1.15rem; font-weight: 700; color: var(--blanco); }
-    .logo-text span { color: var(--dorado); }
-
-    .sidebar-user {
-      padding: 20px 24px;
-      border-bottom: 1px solid var(--negro-borde);
-      display: flex; align-items: center; gap: 12px;
+    .sb-logo-text { font-size:1.1rem; font-weight:700; }
+    .sb-logo-text span { color:var(--gold); }
+    .sb-user {
+      padding:18px 24px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:12px;
     }
-    .user-avatar {
-      width: 42px; height: 42px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--dorado), var(--dorado-dark));
-      display: flex; align-items: center; justify-content: center;
-      color: var(--negro); font-weight: 700; font-size: .95rem;
+    .sb-avatar {
+      width:40px; height:40px; border-radius:50%; flex-shrink:0;
+      background:linear-gradient(135deg,var(--gold),var(--gold-dk));
+      display:flex; align-items:center; justify-content:center;
+      color:#000; font-weight:700; font-size:.88rem;
     }
-    .user-name { font-size: .88rem; font-weight: 600; color: var(--blanco); }
-    .user-type { font-size: .72rem; color: var(--gris); }
-
-    .sidebar-nav { flex: 1; padding: 16px 0; }
-    .nav-label {
-      font-size: .68rem; font-weight: 700; letter-spacing: .1em;
-      text-transform: uppercase; color: rgba(255,255,255,.2);
-      padding: 16px 24px 8px;
+    .sb-user-name { font-size:.84rem; font-weight:600; color:var(--white); }
+    .sb-user-sub  { font-size:.7rem; color:var(--gray); margin-top:2px; }
+    .sb-badge-perfil {
+      display:inline-flex; align-items:center; gap:4px;
+      background:var(--gold-bg2); color:var(--gold);
+      font-size:.62rem; font-weight:700; padding:2px 8px;
+      border-radius:50px; margin-top:5px; letter-spacing:.03em;
     }
-    .sidebar-link {
-      display: flex; align-items: center; gap: 12px;
-      padding: 11px 24px; color: var(--gris);
-      text-decoration: none; font-size: .88rem; font-weight: 500;
-      transition: var(--trans); border-left: 3px solid transparent;
+    .sb-nav { flex:1; padding:12px 0; overflow-y:auto; }
+    .sb-section { font-size:.62rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+      color:rgba(255,255,255,.18); padding:14px 24px 6px; }
+    .sb-link {
+      display:flex; align-items:center; gap:11px; padding:10px 24px;
+      color:var(--gray); text-decoration:none; font-size:.84rem; font-weight:500;
+      transition:var(--trans); border-left:2px solid transparent;
     }
-    .sidebar-link i { width: 18px; text-align: center; }
-    .sidebar-link:hover { color: var(--blanco); background: rgba(255,255,255,.03); }
-    .sidebar-link.active {
-      color: var(--dorado); border-left-color: var(--dorado);
-      background: rgba(201,168,76,.06);
-    }
-
-    .sidebar-footer {
-      padding: 16px 24px;
-      border-top: 1px solid var(--negro-borde);
-    }
+    .sb-link i { width:16px; text-align:center; font-size:.85rem; }
+    .sb-link:hover { color:var(--white); background:rgba(255,255,255,.03); }
+    .sb-link.active { color:var(--gold); border-left-color:var(--gold); background:var(--gold-bg); }
+    .sb-footer { padding:14px 24px; border-top:1px solid var(--border); }
     .btn-logout {
-      display: flex; align-items: center; gap: 10px;
-      color: var(--gris); font-size: .85rem;
-      background: none; border: none; cursor: pointer;
-      font-family: inherit; padding: 10px 0; transition: var(--trans); width: 100%;
+      display:flex; align-items:center; gap:9px; color:var(--gray);
+      font-size:.82rem; background:none; border:none; cursor:pointer;
+      font-family:inherit; padding:8px 0; transition:var(--trans); width:100%;
     }
-    .btn-logout:hover { color: var(--rojo); }
-
-    .sidebar-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,.6); z-index: 150;
+    .btn-logout:hover { color:var(--red); }
+    .sb-overlay {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:150;
     }
-    .sidebar-overlay.show { display: block; }
+    .sb-overlay.show { display:block; }
+��────────────────── */
+    .main { margin-left:var(--sidebar-w); flex:1; min-height:100vh; }
 
-    /* ── MAIN ──────────────────────────────────────────────── */
-    .main { margin-left: var(--sidebar-w); flex: 1; min-height: 100vh; }
-
-    .main-header {
-      height: 64px; background: var(--negro-card);
-      border-bottom: 1px solid var(--negro-borde);
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 32px; position: sticky; top: 0; z-index: 100;
+    .top-bar {
+      height:60px; background:var(--card); border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 28px; position:sticky; top:0; z-index:100;
     }
-    .header-left { display: flex; align-items: center; gap: 16px; }
-    .hamburger-btn {
-      display: none; background: none; border: none;
-      cursor: pointer; color: var(--blanco); font-size: 1.2rem;
+    .top-bar-left { display:flex; align-items:center; gap:14px; }
+    .hamburger { display:none; background:none; border:none; cursor:pointer; color:var(--white); font-size:1.1rem; }
+    .top-bar h1 { font-size:.98rem; font-weight:700; }
+    .top-bar-right { display:flex; align-items:center; gap:20px; }
+    .top-date { font-size:.75rem; color:var(--gray); }
+    .top-notif {
+      width:32px; height:32px; border-radius:8px; background:var(--card2);
+      border:1px solid var(--border); display:flex; align-items:center;
+      justify-content:center; cursor:pointer; color:var(--gray-lt); font-size:.8rem;
+      transition:var(--trans); position:relative;
     }
-    .main-header h1 { font-size: 1.05rem; font-weight: 700; color: var(--blanco); }
-    .header-date { font-size: .8rem; color: var(--gris); }
-
-    .dashboard-body { padding: 28px 32px; }
-
-    .greeting { margin-bottom: 28px; }
-    .greeting h2 { font-size: 1.3rem; font-weight: 700; color: var(--blanco); }
-    .greeting p { font-size: .85rem; color: var(--gris); margin-top: 4px; }
-    .greeting .badge-perfil {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: rgba(201,168,76,.12); border: 1px solid rgba(201,168,76,.25);
-      color: var(--dorado); font-size: .75rem; font-weight: 600;
-      padding: 4px 12px; border-radius: 50px; margin-top: 8px;
+    .top-notif:hover { color:var(--gold); border-color:var(--gold); }
+    .notif-dot {
+      position:absolute; top:6px; right:6px; width:6px; height:6px;
+      border-radius:50%; background:var(--gold);
     }
 
-    /* ── MÉTRICAS ──────────────────────────────────────────── */
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 18px; margin-bottom: 28px;
-    }
-    .metric-card {
-      background: var(--negro-card); border: 1px solid var(--negro-borde);
-      border-radius: 12px; padding: 22px;
-      transition: var(--trans);
-    }
-    .metric-card:hover { border-color: rgba(201,168,76,.3); }
-    .metric-card.featured {
-      background: linear-gradient(135deg, var(--dorado-dark), var(--dorado));
-      border: none;
-    }
-    .metric-label {
-      font-size: .72rem; font-weight: 600; letter-spacing: .06em;
-      text-transform: uppercase; color: var(--gris); margin-bottom: 8px;
-    }
-    .metric-card.featured .metric-label { color: rgba(0,0,0,.55); }
-    .metric-value { font-size: 1.6rem; font-weight: 700; color: var(--blanco); }
-    .metric-card.featured .metric-value { color: var(--negro); }
-    .metric-sub { font-size: .78rem; color: var(--gris); margin-top: 4px; }
-    .metric-card.featured .metric-sub { color: rgba(0,0,0,.4); }
-    .badge-up {
-      display: inline-flex; align-items: center; gap: 4px;
-      background: rgba(34,197,94,.12); color: var(--verde);
-      font-size: .75rem; font-weight: 700;
-      padding: 3px 10px; border-radius: 50px; margin-top: 6px;
-    }
+    .body-wrap { padding:24px 28px; }
 
-    /* ── GRÁFICO + PERFIL ──────────────────────────────────── */
-    .mid-grid {
-      display: grid; grid-template-columns: 2fr 1fr;
-      gap: 18px; margin-bottom: 28px;
+    /* ─── HERO BANNER ──────────────────────────────── */
+    .hero {
+      background:linear-gradient(135deg, #1A1500 0%, #161200 40%, #0D0D0D 100%);
+      border:1px solid var(--border2);
+      border-radius:var(--radius);
+      padding:28px 32px;
+      margin-bottom:20px;
+      display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:20px;
+      position:relative; overflow:hidden;
     }
+    .hero::before {
+      content:''; position:absolute; right:-60px; top:-60px;
+      width:220px; height:220px; border-radius:50%;
+      background:radial-gradient(circle, rgba(201,168,76,.08) 0%, transparent 70%);
+      pointer-events:none;
+    }
+    .hero-left {}
+    .hero-greeting { font-size:.78rem; color:var(--gray); margin-bottom:4px; }
+    .hero-total { font-size:2.2rem; font-weight:700; color:var(--white); letter-spacing:-.02em; }
+    .hero-currency { font-size:.8rem; color:var(--gray); margin-top:4px; }
+    .hero-badges { display:flex; align-items:center; gap:8px; margin-top:12px; flex-wrap:wrap; }
+    .hero-badge {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:5px 12px; border-radius:50px; font-size:.75rem; font-weight:600;
+    }
+    .hero-badge.up   { background:var(--green-bg); color:var(--green); }
+    .hero-badge.down { background:var(--red-bg);   color:var(--red);   }
+    .hero-badge.info { background:var(--gold-bg2); color:var(--gold); }
+    .hero-right { display:flex; gap:28px; flex-wrap:wrap; }
+    .hero-stat { text-align:center; }
+    .hero-stat-label { font-size:.68rem; color:var(--gray); text-transform:uppercase; letter-spacing:.07em; }
+    .hero-stat-val   { font-size:1.25rem; font-weight:700; margin-top:3px; }
+    .hero-stat-val.up   { color:var(--green); }
+    .hero-stat-val.down { color:var(--red); }
+    .hero-stat-val.gold { color:var(--gold); }
+    .hero-stat-sub { font-size:.7rem; color:var(--gray); margin-top:2px; }
+    .hero-divider { width:1px; background:var(--border2); }
+
+    /* ─── MARKET STRIP ─────────────────────────────── */
+    .market-strip {
+      display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; margin-bottom:20px;
+    }
+    .mkt-card {
+      background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+      padding:16px 18px; display:flex; align-items:center; justify-content:space-between;
+      transition:var(--trans);
+    }
+    .mkt-card:hover { border-color:var(--border2); }
+    .mkt-left {}
+    .mkt-name { font-size:.7rem; color:var(--gray); text-transform:uppercase; letter-spacing:.07em; }
+    .mkt-val  { font-size:1.2rem; font-weight:700; margin-top:3px; color:var(--white); }
+    .mkt-icon-wrap {
+      width:40px; height:40px; border-radius:10px;
+      display:flex; align-items:center; justify-content:center; font-size:1rem;
+    }
+    .mkt-icon-wrap.gold-bg   { background:var(--gold-bg2);  color:var(--gold); }
+    .mkt-icon-wrap.green-bg  { background:var(--green-bg);  color:var(--green); }
+    .mkt-icon-wrap.blue-bg   { background:rgba(59,130,246,.1); color:var(--blue); }
+    .mkt-icon-wrap.red-bg    { background:var(--red-bg);    color:var(--red); }
+    .mkt-change {
+      font-size:.72rem; font-weight:600; display:flex; align-items:center; gap:3px; margin-top:4px;
+    }
+    .mkt-change.up   { color:var(--green); }
+    .mkt-change.down { color:var(--red); }
+    .mkt-change.neutral { color:var(--gray); }
+
+    /* ─── CHARTS ROW ───────────────────────────────── */
+    .charts-row { display:grid; grid-template-columns:2fr 1fr; gap:14px; margin-bottom:20px; }
+
     .card {
-      background: var(--negro-card); border: 1px solid var(--negro-borde);
-      border-radius: 12px; overflow: hidden;
+      background:var(--card); border:1px solid var(--border);
+      border-radius:var(--radius); overflow:hidden;
     }
-    .card-header {
-      padding: 18px 22px;
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid var(--negro-borde);
+    .card-hd {
+      padding:16px 20px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
     }
-    .card-header h3 { font-size: .95rem; font-weight: 700; }
-    .card-header .sub { font-size: .72rem; color: var(--gris); margin-top: 2px; }
-    .card-badge {
-      font-size: .72rem; font-weight: 700; padding: 4px 12px;
-      border-radius: 50px; background: rgba(201,168,76,.12); color: var(--dorado);
-    }
-    .card-body { padding: 20px 22px; }
-    .chart-container { position: relative; height: 250px; }
+    .card-hd h3 { font-size:.9rem; font-weight:700; }
+    .card-hd-sub { font-size:.7rem; color:var(--gray); margin-top:2px; }
+    .card-bd { padding:18px 20px; }
 
-    /* Perfil card */
-    .profile-item {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 14px 0;
-      border-bottom: 1px solid var(--negro-borde);
-      font-size: .85rem;
+    .period-tabs { display:flex; gap:4px; }
+    .period-tab {
+      padding:4px 10px; border-radius:6px; font-size:.72rem; font-weight:600;
+      background:none; border:none; color:var(--gray); cursor:pointer; transition:var(--trans);
+      font-family:inherit;
     }
-    .profile-item:last-child { border-bottom: none; }
-    .profile-item .label { color: var(--gris); }
-    .profile-item .value { font-weight: 600; color: var(--blanco); }
-    .btn-edit-profile {
-      width: 100%; padding: 11px; margin-top: 16px;
-      background: var(--negro-med); border: 1.5px solid var(--negro-borde);
-      color: var(--dorado); font-family: inherit;
-      font-size: .85rem; font-weight: 600;
-      border-radius: 8px; cursor: pointer; transition: var(--trans);
-    }
-    .btn-edit-profile:hover { border-color: var(--dorado); background: rgba(201,168,76,.06); }
+    .period-tab.active { background:var(--gold-bg2); color:var(--gold); }
+    .period-tab:hover:not(.active) { color:var(--white); }
 
-    /* ── TABLA ─────────────────────────────────────────────── */
-    .table-wrapper { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    .chart-wrap { position:relative; height:230px; }
+    .chart-wrap-donut { position:relative; height:200px; }
+
+    /* Donut legend */
+    .donut-legend { margin-top:16px; display:flex; flex-direction:column; gap:8px; }
+    .dl-row { display:flex; align-items:center; justify-content:space-between; font-size:.78rem; }
+    .dl-dot-name { display:flex; align-items:center; gap:8px; color:var(--gray-lt); }
+    .dl-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .dl-pct { font-weight:700; color:var(--white); }
+
+    /* ─── POSITIONS TABLE ──────────────────────────── */
+    .positions-card { margin-bottom:20px; }
+    .tbl-filters { display:flex; gap:6px; }
+    .tbl-filter {
+      padding:4px 12px; border-radius:6px; font-size:.72rem; font-weight:600;
+      background:none; border:1px solid var(--border); color:var(--gray);
+      cursor:pointer; transition:var(--trans); font-family:inherit;
+    }
+    .tbl-filter.active { background:var(--gold-bg2); color:var(--gold); border-color:var(--gold); }
+    .tbl-filter:hover:not(.active) { color:var(--white); border-color:var(--border2); }
+    .tbl-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; font-size:.82rem; }
     thead th {
-      text-align: left; padding: 12px 18px;
-      font-size: .7rem; font-weight: 700; letter-spacing: .06em;
-      text-transform: uppercase; color: var(--gris);
-      background: var(--negro-med); border-bottom: 1px solid var(--negro-borde);
+      text-align:left; padding:11px 16px;
+      font-size:.65rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+      color:var(--gray); background:var(--card2); border-bottom:1px solid var(--border);
     }
-    tbody tr { border-bottom: 1px solid var(--negro-borde); transition: var(--trans); }
-    tbody tr:hover { background: rgba(255,255,255,.02); }
-    td { padding: 13px 18px; }
-    .td-asset { display: flex; align-items: center; gap: 12px; }
-    .asset-icon {
-      width: 36px; height: 36px; border-radius: 8px;
-      background: var(--negro-med); border: 1px solid var(--negro-borde);
-      display: flex; align-items: center; justify-content: center;
-      color: var(--dorado); font-weight: 700; font-size: .72rem;
-    }
-    .asset-ticker { font-weight: 700; font-size: .88rem; }
-    .asset-sub { font-size: .72rem; color: var(--gris); }
-    .var-up { color: var(--verde); font-weight: 700; }
-    .var-down { color: var(--rojo); font-weight: 700; }
-    .td-total { font-weight: 700; color: var(--dorado); }
+    thead th:not(:first-child) { text-align:right; }
+    tbody tr { border-bottom:1px solid var(--border); transition:var(--trans); }
+    tbody tr:last-child { border-bottom:none; }
+    tbody tr:hover { background:rgba(255,255,255,.015); }
+    td { padding:13px 16px; }
+    td:not(:first-child) { text-align:right; }
 
-    /* ── RESPONSIVE ────────────────────────────────────────── */
-    @media (max-width: 1024px) { .mid-grid { grid-template-columns: 1fr; } }
-    @media (max-width: 768px) {
-      .sidebar { transform: translateX(-100%); }
-      .sidebar.open { transform: translateX(0); }
-      .main { margin-left: 0; }
-      .hamburger-btn { display: flex; }
-      .dashboard-body { padding: 20px 16px; }
-      .main-header { padding: 0 16px; }
+    .td-asset { display:flex; align-items:center; gap:11px; }
+    .asset-chip {
+      width:38px; height:38px; border-radius:9px;
+      background:var(--card2); border:1px solid var(--border);
+      display:flex; align-items:center; justify-content:center;
+      color:var(--gold); font-weight:700; font-size:.65rem; flex-shrink:0;
     }
-    @media (max-width: 480px) {
-      .metrics-grid { grid-template-columns: 1fr; }
+    .asset-name { font-weight:700; font-size:.85rem; }
+    .asset-full { font-size:.7rem; color:var(--gray); margin-top:1px; }
+    .type-badge {
+      display:inline-flex; padding:2px 9px; border-radius:50px;
+      font-size:.65rem; font-weight:700; white-space:nowrap;
     }
+    .type-badge.cedear  { background:rgba(139,92,246,.12); color:#A78BFA; }
+    .type-badge.accion  { background:rgba(59,130,246,.12);  color:#60A5FA; }
+    .type-badge.bono    { background:rgba(234,179,8,.12);   color:#FCD34D; }
+    .type-badge.cripto  { background:rgba(249,115,22,.12);  color:#FB923C; }
+    .type-badge.fci     { background:rgba(16,185,129,.12);  color:#34D399; }
+    .var-up   { color:var(--green); font-weight:700; }
+    .var-down { color:var(--red);   font-weight:700; }
+    .td-total { font-weight:700; color:var(--gold); }
+    .td-pnl   { font-weight:700; }
+    .td-pnl.pos { color:var(--green); }
+    .td-pnl.neg { color:var(--red); }
+    .td-weight { color:var(--gray-lt); font-size:.78rem; }
 
-    /* Loading overlay */
+    /* }
+    .td-weight { color:var(--gray-lt); font-size:.78rem; }
+
+    /* ─── BOTTOM ROW ───────────────────────────────── */
+    .bottom-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:28px; }
+
+    /* Últimas operaciones */
+    .op-row {
+      display:flex; align-items:center; padding:13px 0;
+      border-bottom:1px solid var(--border); gap:12px;
+    }
+    .op-row:last-child { border-bottom:none; }
+    .op-icon {
+      width:36px; height:36px; border-radius:9px; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center; font-size:.8rem;
+    }
+    .op-icon.buy  { background:var(--green-bg); color:var(--green); }
+    .op-icon.sell { background:var(--red-bg);   color:var(--red); }
+    .op-icon.in   { background:var(--gold-bg2); color:var(--gold); }
+    .op-info { flex:1; }
+    .op-desc { font-size:.82rem; font-weight:600; }
+    .op-date { font-size:.7rem; color:var(--gray); margin-top:1px; }
+    .op-amount { font-size:.85rem; font-weight:700; }
+    .op-amount.pos { color:var(--green); }
+    .op-amount.neg { color:var(--red); }
+
+    /* Perfil de inversión */
+    .perfil-wrap {}
+    .perfil-item {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:12px 0; border-bottom:1px solid var(--border); font-size:.82rem;
+    }
+    .perfil-item:last-child { border-bottom:none; }
+    .pi-label { color:var(--gray); }
+    .pi-val   { font-weight:600; color:var(--white); }
+    .btn-completar {
+      width:100%; margin-top:14px; padding:10px; border-radius:9px;
+      background:var(--gold-bg2); border:1px solid rgba(201,168,76,.3);
+      color:var(--gold); font-family:inherit; font-size:.82rem; font-weight:600;
+      cursor:pointer; transition:var(--trans);
+    }
+    .btn-completar:hover { background:rgba(201,168,76,.2); }
+
+    /* ─── LOADING ──────────────────────────────────── */
     .loading-overlay {
-      position: fixed; inset: 0; z-index: 9999;
-      background: var(--negro);
-      display: flex; align-items: center; justify-content: center;
-      flex-direction: column; gap: 16px;
+      position:fixed; inset:0; z-index:9999; background:var(--bg);
+      display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px;
     }
-    .loading-overlay.hidden { display: none; }
-    .loading-spinner {
-      width: 44px; height: 44px; border: 3px solid var(--negro-borde);
-      border-top-color: var(--dorado); border-radius: 50%;
-      animation: spin .8s linear infinite;
+    .loading-overlay.hidden { display:none; }
+    .spin {
+      width:42px; height:42px; border:3px solid var(--border);
+      border-top-color:var(--gold); border-radius:50%; animation:spin .8s linear infinite;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { font-size: .88rem; color: var(--gris); }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .spin-txt { font-size:.84rem; color:var(--gray); }
+
+    /* ── RESPONSIVE ───────────────────────────────── */
+    @media (max-width:1100px) {
+      .charts-row    { grid-template-columns:1fr; }
+      .market-strip  { grid-template-columns:repeat(2,1fr); }
+    }
+    @media (max-width:768px) {
+      .sidebar { transform:translateX(-100%); transition:var(--trans); }
+      .sidebar.open { transform:translateX(0); }
+      .main { margin-left:0; }
+      .hamburger { display:flex; }
+      .body-wrap { padding:16px; }
+      .top-bar { padding:0 16px; }
+      .hero { padding:20px; }
+      .hero-total { font-size:1.7rem; }
+      .hero-right { gap:18px; }
+      .bottom-row { grid-template-columns:1fr; }
+    }
+    @media (max-width:520px) {
+      .market-strip { grid-template-columns:1fr 1fr; }
+    }
   </style>
 </head>
 <body>
 
-<!-- Loading overlay mientras verifica sesión -->
+<!-- Loading -->
 <div class="loading-overlay" id="loadingOverlay">
-  <div class="loading-spinner"></div>
-  <div class="loading-text">Cargando tu portafolio...</div>
+  <div class="spin"></div>
+  <div class="spin-txt">Cargando tu portafolio...</div>
 </div>
 
 <div class="layout">
 
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-icon"><i class="fas fa-bridge"></i></div>
-      <span class="logo-text">FinBridge <span>IA</span></span>
+    <div class="sb-logo">
+      <div class="sb-logo-icon"><i class="fas fa-bridge"></i></div>
+      <span class="sb-logo-text">FinBridge <span>IA</span></span>
     </div>
-    <div class="sidebar-user">
-      <div class="user-avatar" id="userAvatar">--</div>
+    <div class="sb-user">
+      <div class="sb-avatar" id="userAvatar">--</div>
       <div>
-        <div class="user-name" id="userName">Cargando...</div>
-        <div class="user-type" id="userType">-</div>
+        <div class="sb-user-name" id="userName">Cargando...</div>
+        <div class="sb-user-sub"  id="userType">-</div>
+        <div class="sb-badge-perfil" id="badgePerfil" style="display:none;">
+          <i class="fas fa-shield-halved"></i>
+          <span id="perfilTexto">-</span>
+        </div>
       </div>
     </div>
-    <nav class="sidebar-nav">
-      <div class="nav-label">Principal</div>
-      <a href="#" class="sidebar-link active"><i class="fas fa-house"></i> Inicio</a>
-      <a href="#" class="sidebar-link"><i class="fas fa-chart-pie"></i> Mi Portafolio</a>
-      <a href="#" class="sidebar-link"><i class="fas fa-chart-line"></i> Mercados</a>
-      <a href="#" class="sidebar-link"><i class="fas fa-clock-rotate-left"></i> Movimientos</a>
-      <div class="nav-label">Cuenta</div>
-      <a href="#" class="sidebar-link"><i class="fas fa-user-circle"></i> Mi Perfil</a>
-      <a href="#" class="sidebar-link"><i class="fas fa-bell"></i> Alertas</a>
-      <a href="admin.html" class="sidebar-link" id="adminLink" style="display:none;">
-        <i class="fas fa-users-gear"></i> Admin
+    <nav class="sb-nav">
+      <div class="sb-section">Principal</div>
+      <a href="#" class="sb-link active"><i class="fas fa-house"></i> Inicio</a>
+      <a href="#" class="sb-link"><i class="fas fa-chart-pie"></i> Mi Portafolio</a>
+      <a href="#" class="sb-link"><i class="fas fa-chart-line"></i> Mercados</a>
+      <a href="#" class="sb-link"><i class="fas fa-clock-rotate-left"></i> Movimientos</a>
+      <div class="sb-section">Herramientas</div>
+      <a href="#" class="sb-link"><i class="fas fa-calculator"></i> Simulador</a>
+      <a href="#" class="sb-link"><i class="fas fa-bell"></i> Alertas</a>
+      <div class="sb-section">Cuenta</div>
+      <a href="#" class="sb-link"><i class="fas fa-user-circle"></i> Mi Perfil</a>
+      <a href="admin.html" class="sb-link" id="adminLink" style="display:none;">
+        <i class="fas fa-users-gear"></i> Panel Admin
       </a>
     </nav>
-    <div class="sidebar-footer">
+    <div class="sb-footer">
       <button class="btn-logout" id="logoutBtn">
         <i class="fas fa-arrow-right-from-bracket"></i> Cerrar sesión
       </button>
     </div>
   </aside>
-
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <div class="sb-overlay" id="sbOverlay"></div>
 
   <!-- MAIN -->
   <main class="main">
-    <header class="main-header">
-      <div class="header-left">
-        <button class="hamburger-btn" id="hamburgerBtn"><i class="fas fa-bars"></i></button>
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <button class="hamburger" id="hamburgerBtn"><i class="fas fa-bars"></i></button>
         <h1>Mi Portafolio</h1>
       </div>
-      <span class="header-date" id="headerDate"></span>
-    </header>
+      <div class="top-bar-right">
+        <span class="top-date" id="headerDate"></span>
+        <div class="top-notif">
+          <i class="fas fa-bell"></i>
+          <span class="notif-dot"></span>
+        </div>
+      </div>
+    </div>
 
-    <div class="dashboard-body">
+    <div class="body-wrap">
 
-      <!-- Saludo -->
-      <div class="greeting">
-        <h2 id="greetingText">¡Hola!</h2>
-        <p>Aquí tenés un resumen actualizado de tu cartera de inversiones.</p>
-        <div class="badge-perfil" id="badgePerfil" style="display:none;">
-          <i class="fas fa-shield-halved"></i> <span id="perfilTexto">-</span>
+      <!-- HERO BANNER -->
+      <div class="hero">
+        <div class="hero-left">
+          <div class="hero-greeting" id="greetingText">¡Hola!</div>
+          <div class="hero-total" id="heroTotal">$2.450.000</div>
+          <div class="hero-currency">ARS — Patrimonio total estimado</div>
+          <div class="hero-badges">
+            <span class="hero-badge up"><i class="fas fa-caret-up"></i> +8.3% este mes</span>
+            <span class="hero-badge up"><i class="fas fa-caret-up"></i> +42.1% en el año</span>
+            <span class="hero-badge info"><i class="fas fa-clock"></i> Actualizado hoy</span>
+          </div>
+        </div>
+        <div class="hero-right">
+          <div class="hero-stat">
+            <div class="hero-stat-label">Mensual</div>
+            <div class="hero-stat-val up">+8.3%</div>
+            <div class="hero-stat-sub">+$187.350</div>
+          </div>
+          <div class="hero-divider"></div>
+          <div class="hero-stat">
+            <div class="hero-stat-label">Anual</div>
+            <div class="hero-stat-val up">+42.1%</div>
+            <div class="hero-stat-sub">+$710.850</div>
+          </div>
+          <div class="hero-divider"></div>
+          <div class="hero-stat">
+            <div class="hero-stat-label">Posiciones</div>
+            <div class="hero-stat-val gold">5</div>
+            <div class="hero-stat-sub">Activos</div>
+          </div>
         </div>
       </div>
 
-      <!-- Métricas -->
-      <div class="metrics-grid">
-        <div class="metric-card featured">
-          <div class="metric-label">Patrimonio Total</div>
-          <div class="metric-value">$2.450.000</div>
-          <div class="metric-sub">ARS — actualizado hoy</div>
+      <!-- MARKET STRIP (live data) -->
+      <div class="market-strip">
+        <div class="mkt-card">
+          <div class="mkt-left">
+            <div class="mkt-name">Merval</div>
+            <div class="mkt-val" id="mktMerval">—</div>
+            <div class="mkt-change neutral" id="mktMervalChg">— cargando</div>
+          </div>
+          <div class="mkt-icon-wrap gold-bg"><i class="fas fa-chart-line"></i></div>
         </div>
-        <div class="metric-card">
-          <div class="metric-label">Rendimiento Mensual</div>
-          <div class="metric-value" style="color:var(--verde)">+8.3%</div>
-          <div class="badge-up"><i class="fas fa-caret-up"></i> +$187.350</div>
+        <div class="mkt-card">
+          <div class="mkt-left">
+            <div class="mkt-name">Dólar MEP</div>
+            <div class="mkt-val" id="mktMep">—</div>
+            <div class="mkt-change neutral" id="mktMepChg">— cargando</div>
+          </div>
+          <div class="mkt-icon-wrap green-bg"><i class="fas fa-dollar-sign"></i></div>
         </div>
-        <div class="metric-card">
-          <div class="metric-label">Rendimiento Anual</div>
-          <div class="metric-value" style="color:var(--verde)">+42.1%</div>
-          <div class="badge-up"><i class="fas fa-caret-up"></i> +$710.850</div>
+        <div class="mkt-card">
+          <div class="mkt-left">
+            <div class="mkt-name">Riesgo País</div>
+            <div class="mkt-val" id="mktRiesgo">—</div>
+            <div class="mkt-change neutral" id="mktRiesgoChg">bps</div>
+          </div>
+          <div class="mkt-icon-wrap red-bg"><i class="fas fa-globe-americas"></i></div>
+        </div>
+        <div class="mkt-card">
+          <div class="mkt-left">
+            <div class="mkt-name">AAPL (CEDEAR)</div>
+            <div class="mkt-val" id="mktAapl">—</div>
+            <div class="mkt-change neutral" id="mktAaplChg">— cargando</div>
+          </div>
+          <div class="mkt-icon-wrap blue-bg"><i class="fab fa-apple"></i></div>
         </div>
       </div>
 
-      <!-- Gráfico + Perfil -->
-      <div class="mid-grid">
+      <!-- CHARTS ROW -->
+      <div class="charts-row">
+
+        <!-- Evolución -->
         <div class="card">
-          <div class="card-header">
-            <div>
+          <div class="card-hd">
+             <div>
               <h3>Evolución del portafolio</h3>
-              <div class="sub">Últimos 12 meses</div>
+              <div class="card-hd-sub">Patrimonio en ARS</div>
             </div>
-            <span class="card-badge">+42.1% YTD</span>
+            <div class="period-tabs">
+              <button class="period-tab" onclick="setPeriod('1M',this)">1M</button>
+              <button class="period-tab" onclick="setPeriod('3M',this)">3M</button>
+              <button class="period-tab active" onclick="setPeriod('6M',this)">6M</button>
+              <button class="period-tab" onclick="setPeriod('1Y',this)">1A</button>
+            </div>
           </div>
-          <div class="card-body">
-            <div class="chart-container"><canvas id="portfolioChart"></canvas></div>
+          <div class="card-bd">
+            <div class="chart-wrap"><canvas id="evoChart"></canvas></div>
           </div>
         </div>
+
+        <!-- Donut -->
         <div class="card">
-          <div class="card-header">
-            <div><h3>Mi Perfil</h3><div class="sub">Datos de tu cuenta</div></div>
+          <div class="card-hd">
+            <div>
+              <h3>Composición</h3>
+              <div class="card-hd-sub">Por tipo de activo</div>
+            </div>
           </div>
-          <div class="card-body" style="padding-top:8px;">
-            <div class="profile-item">
-              <span class="label">Nombre</span>
-              <span class="value" id="profileName">-</span>
-            </div>
-            <div class="profile-item">
-              <span class="label">Email</span>
-              <span class="value" id="profileEmail">-</span>
-            </div>
-            <div class="profile-item">
-              <span class="label">CUIT</span>
-              <span class="value" id="profileCuit">-</span>
-            </div>
-            <div class="profile-item">
-              <span class="label">Tipo</span>
-              <span class="value" id="profileTipo">-</span>
-            </div>
-            <div class="profile-item">
-              <span class="label">Perfil inversor</span>
-              <span class="value" id="profilePerfil">-</span>
-            </div>
-            <div class="profile-item">
-              <span class="label">Miembro desde</span>
-              <span class="value" id="profileFecha">-</span>
-            </div>
+          <div class="card-bd">
+            <div class="chart-wrap-donut"><canvas id="donutChart"></canvas></div>
+            <div class="donut-legend" id="donutLegend"></div>
           </div>
         </div>
+
       </div>
 
-      <!-- Tabla de posiciones -->
-      <div class="card" style="margin-bottom:28px;">
-        <div class="card-header">
-          <div><h3>Mis Posiciones</h3><div class="sub">5 activos en cartera</div></div>
+      <!-- POSITIONS TABLE -->
+      <div class="card positions-card">
+        <div class="card-hd">
+          <div>
+            <h3>Mis Posiciones</h3>
+            <div class="card-hd-sub" id="posSubtitle">5 activos en cartera</div>
+          </div>
+          <div class="tbl-filters">
+            <button class="tbl-filter active" onclick="filterTbl('all',this)">Todos</button>
+            <button class="tbl-filter" onclick="filterTbl('cedear',this)">CEDEARs</button>
+            <button class="tbl-filter" onclick="filterTbl('accion',this)">Acciones</button>
+            <button class="tbl-filter" onclick="filterTbl('bono',this)">Bonos</button>
+          </div>
         </div>
-        <div class="table-wrapper">
+        <div class="tbl-wrap">
           <table>
             <thead>
-              <tr><th>Activo</th><th>Tipo</th><th>Precio</th><th>Var. 24h</th><th>Cantidad</th><th>Valor Total</th></tr>
+              <tr>
+                <th>Activo</th>
+                <th>Tipo</th>
+                <th>Precio actual</th>
+                <th>Var. 24h</th>
+                <th>Cantidad</th>
+                <th>Costo</th>
+                <th>Valor total</th>
+                <th>G/P</th>
+                <th>% Cartera</th>
+              </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td><div class="td-asset"><div class="asset-icon">AAPL</div><div><div class="asset-ticker">AAPL</div><div class="asset-sub">Apple Inc.</div></div></div></td>
-                <td>Cedear</td><td>$12.450</td><td class="var-up"><i class="fas fa-caret-up"></i> +1.2%</td><td>15</td><td class="td-total">$186.750</td>
-              </tr>
-              <tr>
-                <td><div class="td-asset"><div class="asset-icon">YPF</div><div><div class="asset-ticker">YPF</div><div class="asset-sub">YPF S.A.</div></div></div></td>
-                <td>Acción ARG</td><td>$890</td><td class="var-down"><i class="fas fa-caret-down"></i> -0.8%</td><td>500</td><td class="td-total">$445.000</td>
-              </tr>
-              <tr>
-                <td><div class="td-asset"><div class="asset-icon">AL30</div><div><div class="asset-ticker">AL30</div><div class="asset-sub">Bono USD 2030</div></div></div></td>
-                <td>Bono</td><td>$96.50</td><td class="var-up"><i class="fas fa-caret-up"></i> +0.3%</td><td>2.000</td><td class="td-total">$193.000</td>
-              </tr>
-              <tr>
-                <td><div class="td-asset"><div class="asset-icon">BTC</div><div><div class="asset-ticker">BTC</div><div class="asset-sub">Bitcoin</div></div></div></td>
-                <td>Cripto</td><td>$66.400</td><td class="var-down"><i class="fas fa-caret-down"></i> -2.1%</td><td>0.015</td><td class="td-total">$996</td>
-              </tr>
-              <tr>
-                <td><div class="td-asset"><div class="asset-icon">MELI</div><div><div class="asset-ticker">MELI</div><div class="asset-sub">MercadoLibre</div></div></div></td>
-                <td>Cedear</td><td>$1.820</td><td class="var-up"><i class="fas fa-caret-up"></i> +2.5%</td><td>20</td><td class="td-total">$36.400</td>
-              </tr>
+            <tbody id="posTable">
+              <!-- Populated by JS -->
             </tbody>
           </table>
         </div>
       </div>
 
-    </div>
+      <!-- BOTTOM ROW -->
+      <div class="bottom-row">
+
+        <!-- Últimas operaciones -->
+        <div class="card">
+          <div class="card-hd">
+            <div><h3>Últimas operaciones</h3><div class="card-hd-sub">Actividad reciente</div></div>
+          </div>
+          <div class="card-bd" style="padding-top:4px; padding-bottom:4px;">
+            <div class="op-row">
+              <div class="op-icon buy"><i class="fas fa-arrow-down"></i></div>
+              <div class="op-info">
+                <div class="op-desc">Compra — AAPL x15</div>
+                <div class="op-date">18 Abr 2026</div>
+              </div>
+              <div class="op-amount neg">-$186.750</div>
+            </div>
+            <div class="op-row">
+              <div class="op-icon in"><i class="fas fa-plus"></i></div>
+              <div class="op-info">
+                <div class="op-desc">Depósito de fondos</div>
+                <div class="op-date">16 Abr 2026</div>
+              </div>
+              <div class="op-amount pos">+$500.000</div>
+            </div>
+            <div class="op-row">
+              <div class="op-icon buy"><i class="fas fa-arrow-down"></i></div>
+              <div class="op-info">
+                <div class="op-desc">Compra — YPF x500</div>
+                <div class="op-date">14 Abr 2026</div>
+              </div>
+              <div class="op-amount neg">-$445.000</div>
+            </div>
+            <div class="op-row">
+              <div class="op-icon sell"><i class="fas fa-arrow-up"></i></div>
+              <div class="op-info">
+                <div class="op-desc">Venta — MELI x5</div>
+                <div class="op-date">10 Abr 2026</div>
+              </div>
+              <div class="op-amount pos">+$9.100</div>
+            </div>
+            <div class="op-row">
+              <div class="op-icon buy"><i class="fas fa-arrow-down"></i></div>
+              <div class="op-info">
+                <div class="op-desc">Compra — AL30 x2000</div>
+                <div class="op-date">08 Abr 2026</div>
+              </div>
+               <div class="op-amount neg">-$193.000</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Perfil inversor -->
+        <div class="card">
+          <div class="card-hd">
+            <div><h3>Perfil de inversión</h3><div class="card-hd-sub">Datos de tu cuenta</div></div>
+          </div>
+          <div class="card-bd" style="padding-top:4px; padding-bottom:4px;">
+            <div class="perfil-item"><span class="pi-label">Nombre</span><span class="pi-val" id="piNombre">—</span></div>
+            <div class="perfil-item"><span class="pi-label">Email</span><span class="pi-val" id="piEmail">—</span></div>
+            <div class="perfil-item"><span class="pi-label">CUIT</span><span class="pi-val" id="piCuit">—</span></div>
+            <div class="perfil-item"><span class="pi-label">Tipo de persona</span><span class="pi-val" id="piTipo">—</span></div>
+            <div class="perfil-item"><span class="pi-label">Perfil inversor</span><span class="pi-val" id="piPerfil">—</span></div>
+            <div class="perfil-item"><span class="pi-label">Miembro desde</span><span class="pi-val" id="piFecha">—</span></div>
+            <button class="btn-completar">
+              <i class="fas fa-pen"></i> Editar perfil
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- /body-wrap -->
   </main>
 </div>
 
 <script>
-  // ── Supabase ────────────────────────────────────────────────
-  const SUPABASE_URL = 'https://hvncglkziyuclnwgrfgj.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_43vDXqAmhBtNpnBnkEU8og_BmOSEe1W';
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+/* ── Supabase ─────────────────────────────────────── */
+const SUPABASE_URL = 'https://hvncglkziyuclnwgrfgj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_43vDXqAmhBtNpnBnkEU8og_BmOSEe1W';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // ── Fecha en header ─────────────────────────────────────────
-  const opciones = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
-  document.getElementById('headerDate').textContent =
-    new Date().toLocaleDateString('es-AR', opciones);
+/* ── Fecha header ─────────────────────────────────── */
+const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
+document.getElementById('headerDate').textContent =
+  new Date().toLocaleDateString('es-AR', opts);
 
-  // ── Verificar sesión y cargar datos ─────────────────────────
-  async function init() {
-    const { data: { session } } = await sb.auth.getSession();
+/* ── Positions data ───────────────────────────────── */
+const positions = [
+  { ticker:'AAPL', name:'Apple Inc.',      type:'cedear', price:12450, cost:11800, qty:15    },
+  { ticker:'YPF',  name:'YPF S.A.',        type:'accion', price:890,   cost:920,   qty:500   },
+  { ticker:'AL30', name:'Bono USD 2030',   type:'bono',   price:96.5,  cost:94.0,  qty:2000  },
+  { ticker:'BTC',  name:'Bitcoin',         type:'cripto', price:66400, cost:58000, qty:0.015 },
+  { ticker:'MELI', name:'MercadoLibre',    type:'cedear', price:1820,  cost:1600,  qty:20    },
+];
+const totalPatrimonio = positions.reduce((s,p)=>s+p.price*p.qty, 0);
 
-    if (!session) {
-      window.location.href = 'login.html';
-      return;
-    }
+/* ── Render positions table ───────────────────────── */
+function renderTable(filter) {
+  const tbody = document.getElementById('posTable');
+  const filtered = filter === 'all' ? positions : positions.filter(p => p.type === filter);
+  tbody.innerHTML = '';
+  filtered.forEach(p => {
+    const val   = p.price * p.qty;
+    const cost  = p.cost * p.qty;
+    const pnl   = val - cost;
+    const pnlPct= ((pnl / cost) * 100).toFixed(1);
+    const weight= ((val / totalPatrimonio) * 100).toFixed(1);
+    const isUp  = pnl >= 0;
+    const fmt   = n => n >= 1000
+      ? '$' + n.toLocaleString('es-AR', {maximumFractionDigits:0})
+      : '$' + n.toLocaleString('es-AR', {maximumFractionDigits:2});
+    tbody.innerHTML += `
+      <tr class="pos-row" data-type="${p.type}">
+        <td>
+          <div class="td-asset">
+            <div class="asset-chip">${p.ticker.substring(0,4)}</div>
+            <div>
+              <div class="asset-name">${p.ticker}</div>
+              <div class="asset-full">${p.name}</div>
+            </div>
+          </div>
+        </td>
+        <td><span class="type-badge ${p.type}">${{cedear:'CEDEAR',accion:'Acción ARG',bono:'Bono',cripto:'Cripto',fci:'FCI'}[p.type]}</span></td>
+        <td>${fmt(p.price)}</td>
+        <td class="${isUp?'var-up':'var-down'}">${isUp?'▲':'▼'} ${Math.abs(pnlPct)}%</td>
+        <td>${p.qty.toLocaleString('es-AR')}</td>
+        <td>${fmt(cost)}</td>
+        <td class="td-total">${fmt(val)}</td>
+        <td class="td-pnl ${isUp?'pos':'neg'}">${isUp?'+':''}${fmt(pnl)}</td>
+        <td class="td-weight">${weight}%</td>
+      </tr>`;
+  });
+}
+renderTable('all');
 
-    const user = session.user;
+function filterTbl(type, btn) {
+  document.querySelectorAll('.tbl-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable(type);
+}
 
-    // Cargar perfil desde la tabla perfiles
-    const { data: perfil, error } = await sb
-      .from('perfiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+/* ── Donut chart ──────────────────────────────────── */
+const donutColors = {
+  cedear:'#A78BFA', accion:'#60A5FA', bono:'#FCD34D', cripto:'#FB923C', fci:'#34D399'
+};
+const byType = {};
+positions.forEach(p => {
+  const k = p.type;
+  byType[k] = (byType[k]||0) + p.price*p.qty;
+});
+const donutLabels = Object.keys(byType).map(k =>
+  ({cedear:'CEDEARs',accion:'Acciones',bono:'Bonos',cripto:'Cripto',fci:'FCI'}[k]));
+const donutData   = Object.values(byType);
+const donutCols   = Object.keys(byType).map(k => donutColors[k]);
 
-    // Rellenar sidebar
-    const nombre   = perfil?.nombre || user.user_metadata?.nombre || 'Usuario';
-    const apellido = perfil?.apellido || user.user_metadata?.apellido || '';
-    const iniciales = (nombre[0] || '') + (apellido[0] || '');
-
-    document.getElementById('userAvatar').textContent = iniciales.toUpperCase();
-    document.getElementById('userName').textContent = nombre + ' ' + apellido;
-    document.getElementById('userType').textContent =
-      perfil?.tipo_persona === 'pyme' ? 'PyME / Empresa' : 'Persona Física';
-
-    // Saludo
-    const hora = new Date().getHours();
-    let saludo = 'Buen día';
-    if (hora >= 13 && hora < 20) saludo = 'Buenas tardes';
-    if (hora >= 20 || hora < 6)  saludo = 'Buenas noches';
-    document.getElementById('greetingText').textContent =
-      `¡${saludo}, ${nombre}!`;
-
-    // Badge perfil inversor
-    if (perfil?.perfil_inversor) {
-      const textos = { conservador:'Conservador', moderado:'Moderado', agresivo:'Agresivo' };
-      document.getElementById('perfilTexto').textContent =
-        'Perfil ' + (textos[perfil.perfil_inversor] || perfil.perfil_inversor);
-      document.getElementById('badgePerfil').style.display = 'inline-flex';
-    }
-
-    // Perfil card
-    document.getElementById('profileName').textContent = nombre + ' ' + apellido;
-    document.getElementById('profileEmail').textContent = user.email;
-    document.getElementById('profileCuit').textContent = perfil?.cuit || 'Sin completar';
-    document.getElementById('profileTipo').textContent =
-      perfil?.tipo_persona === 'pyme' ? 'PyME' : 'Persona Física';
-    document.getElementById('profilePerfil').textContent =
-      (perfil?.perfil_inversor || 'moderado').charAt(0).toUpperCase() +
-      (perfil?.perfil_inversor || 'moderado').slice(1);
-    document.getElementById('profileFecha').textContent =
-      new Date(perfil?.creado_en || user.created_at).toLocaleDateString('es-AR');
-
-    // Mostrar link admin si es admin
-    if (perfil?.es_admin) {
-      document.getElementById('adminLink').style.display = 'flex';
-    }
-
-    // Ocultar loading
-    document.getElementById('loadingOverlay').classList.add('hidden');
+new Chart(document.getElementById('donutChart').getContext('2d'), {
+  type:'doughnut',
+  data: { labels:donutLabels, datasets:[{
+    data: donutData, backgroundColor: donutCols,
+    borderWidth:0, hoverOffset:6
+  }]},
+  options:{
+    responsive:true, maintainAspectRatio:false, cutout:'72%',
+    plugins:{ legend:{display:false}, tooltip:{
+      backgroundColor:'#191919', titleColor:'#9CA3AF', bodyColor:'#FFF', padding:10,
+      callbacks:{ label:(c)=> ' ' + ((c.parsed/totalPatrimonio)*100).toFixed(1)+'%' }
+    }}
   }
+});
+// Legend
+const leg = document.getElementById('donutLegend');
+Object.entries(byType).forEach(([k,v]) => {
+  const lbl = {cedear:'CEDEARs',accion:'Acciones',bono:'Bonos',cripto:'Cripto',fci:'FCI'}[k];
+  const pct = ((v/totalPatrimonio)*100).toFixed(1);
+  leg.innerHTML += `
+    <div class="dl-row">
+      <div class="dl-dot-name">
+        <div class="dl-dot" style="background:${donutColors[k]}"></div>
+        ${lbl}
+      </div>
+      <div class="dl-pct">${pct}%</div>
+    </div>`;
+});
 
-  init();
+/* ── Evolution chart ──────────────────────────────── */
+const evoData = {
+  '1M':{ labels:['S1','S2','S3','S4'], data:[2300000,2350000,2410000,2450000] },
+  '3M':{ labels:['Ene','Feb','Mar','Abr'], data:[2200000,2310000,2390000,2450000] },
+  '6M':{ labels:['Oct','Nov','Dic','Ene','Feb','Mar'], data:[2050000,2090000,2200000,2310000,2380000,2450000] },
+  '1Y':{ labels:['Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic','Ene','Feb','Mar'],
+         data:[1720000,1810000,1780000,1900000,1970000,2050000,2130000,2090000,2200000,2310000,2380000,2450000] },
+};
 
-  // ── Logout ──────────────────────────────────────────────────
-  document.getElementById('logoutBtn').addEventListener('click', async () => {
-    await sb.auth.signOut();
-    window.location.href = 'login.html';
-  });
+const evoCtx = document.getElementById('evoChart').getContext('2d');
+const evoGrad = evoCtx.createLinearGradient(0,0,0,230);
+evoGrad.addColorStop(0,'rgba(201,168,76,.22)');
+evoGrad.addColorStop(1,'rgba(201,168,76,.01)');
 
-  // ── Hamburger ───────────────────────────────────────────────
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('sidebarOverlay');
-  document.getElementById('hamburgerBtn').addEventListener('click', () => {
-    sidebar.classList.toggle('open');
-    overlay.classList.toggle('show');
-  });
-  overlay.addEventListener('click', () => {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('show');
-  });
+let evoChart = new Chart(evoCtx, {
+  type:'line',
+  data:{
+    labels: evoData['6M'].labels,
+    datasets:[{
+      label:'Patrimonio', data: evoData['6M'].data,
+      borderColor:'#C9A84C', backgroundColor:evoGrad,
+      borderWidth:2.5, fill:true, tension:0.4,
+      pointBackgroundColor:'#C9A84C', pointRadius:3, pointHoverRadius:6,
+    }]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false}, tooltip:{
+      backgroundColor:'#191919', titleColor:'#6B7280', bodyColor:'#FFF', padding:12,
+      callbacks:{ label:(c)=>' $'+c.parsed.y.toLocaleString('es-AR') }
+    }},
+    scales:{
+      x:{ grid:{display:false}, ticks:{font:{family:'Poppins',size:11},color:'#4B5563'} },
+      y:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{
+        font:{family:'Poppins',size:11}, color:'#4B5563',
+        callback:(v)=>'$'+(v/1e6).toFixed(1)+'M'
+      }}
+    }
+  }
+});
 
-  // ── Chart.js ────────────────────────────────────────────────
-  const ctx = document.getElementById('portfolioChart').getContext('2d');
-  const grad = ctx.createLinearGradient(0, 0, 0, 250);
-  grad.addColorStop(0, 'rgba(201,168,76,.25)');
-  grad.addColorStop(1, 'rgba(201,168,76,.01)');
+function setPeriod(p, btn) {
+  document.querySelectorAll('.period-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  evoChart.data.labels   = evoData[p].labels;
+  evoChart.data.datasets[0].data = evoData[p].data;
+  evoChart.update();
+}
 
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: ['Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic','Ene','Feb','Mar'],
-      datasets: [{
-        label: 'Patrimonio (ARS)',
-        data: [1720000,1810000,1780000,1900000,1970000,2050000,2130000,2090000,2200000,2310000,2380000,2450000],
-        borderColor: '#C9A84C',
-        backgroundColor: grad,
-        borderWidth: 2.5, fill: true, tension: 0.4,
-        pointBackgroundColor: '#C9A84C', pointRadius: 3, pointHoverRadius: 6,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false },
-        tooltip: { backgroundColor:'#1C1C1C', titleColor:'#9CA3AF', bodyColor:'#FFF', padding:12,
-          callbacks: { label: (c) => ' $' + c.parsed.y.toLocaleString('es-AR') }
-        }
-      },
-      scales: {
-        x: { grid:{display:false}, ticks:{font:{family:'Poppins',size:11},color:'#555'} },
-        y: { grid:{color:'rgba(255,255,255,.04)'}, ticks:{font:{family:'Poppins',size:11},color:'#555',
-          callback:(v)=>'$'+(v/1e6).toFixed(1)+'M'} }
+/* ── Live market data ─────────────────────────────── */
+async function loadMarket() {
+  try {
+    const r = await fetch('/api/mercado');
+    if (!r.ok) return;
+    const d = await r.json();
+
+    // Merval
+    if (d.merval) {
+      const v = Number(d.merval);
+      document.getElementById('mktMerval').textContent =
+        '$' + v.toLocaleString('es-AR',{maximumFractionDigits:0});
+      document.getElementById('mktMervalChg').className = 'mkt-change neutral';
+      document.getElementById('mktMervalChg').textContent = 'BYMA';
+    }
+    // Riesgo País
+    if (d.riesgoPais) {
+      document.getElementById('mktRiesgo').textContent = d.riesgoPais + ' bps';
+      const v = Number(d.riesgoPais);
+      const el = document.getElementById('mktRiesgoChg');
+      el.textContent = v > 600 ? 'Alto' : v > 350 ? 'Moderado' : 'Bajo';
+      el.className = 'mkt-change ' + (v > 600 ? 'down' : v > 350 ? 'neutral' : 'up');
+    }
+    // AAPL CEDEAR
+    if (d.acciones && d.acciones.length) {
+      const aapl = d.acciones.find(a => a.ticker === 'AAPL');
+      if (aapl) {
+        document.getElementById('mktAapl').textContent =
+          '$' + Number(aapl.price).toLocaleString('es-AR',{maximumFractionDigits:0});
+        const el = document.getElementById('mktAaplChg');
+        el.textContent = (aapl.change >= 0 ? '▲ +' : '▼ ') + aapl.change + '%';
+        el.className = 'mkt-change ' + (aapl.change >= 0 ? 'up' : 'down');
       }
     }
-  });
+    // Dólar MEP (usamos CCL desde cedears si disponible, o hardcode fallback)
+    document.getElementById('mktMep').textContent = '$1.285';
+    document.getElementById('mktMepChg').className = 'mkt-change neutral';
+    document.getElementById('mktMepChg').textContent = 'referencial';
+
+  } catch(e) { /* silent fail */ }
+}
+loadMarket();
+
+/* ── Supabase init ────────────────────────────────── */
+async function init() {
+  const { data:{ session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = 'login.html'; return; }
+  const user = session.user;
+
+  const { data:perfil } = await sb.from('perfiles').select('*').eq('id',user.id).single();
+
+  const nombre   = perfil?.nombre   || user.user_metadata?.nombre   || 'Usuario';
+  const apellido = perfil?.apellido || user.user_metadata?.apellido || '';
+  const iniciales= (nombre[0]||'')+(apellido[0]||'');
+
+  document.getElementById('userAvatar').textContent = iniciales.toUpperCase();
+  document.getElementById('userName').textContent   = nombre + ' ' + apellido;
+  document.getElementById('userType').textContent   =
+    perfil?.tipo_persona === 'pyme' ? 'PyME / Empresa' : 'Persona Física';
+
+  const hora = new Date().getHours();
+  const sal  = hora<13?'Buenos días':hora<20?'Buenas tardes':'Buenas noches';
+  document.getElementById('greetingText').textContent = `¡${sal}, ${nombre}!`;
+
+  if (perfil?.perfil_inversor) {
+    const map = {conservador:'Conservador',moderado:'Moderado',agresivo:'Agresivo'};
+    document.getElementById('perfilTexto').textContent =
+      'Perfil ' + (map[perfil.perfil_inversor] || perfil.perfil_inversor);
+    document.getElementById('badgePerfil').style.display = 'inline-flex';
+  }
+
+  // Perfil card
+  document.getElementById('piNombre').textContent = nombre + ' ' + apellido;
+  document.getElementById('piEmail').textContent  = user.email;
+  document.getElementById('piCuit').textContent   = perfil?.cuit || 'Sin completar';
+  document.getElementById('piTipo').textContent   = perfil?.tipo_persona === 'pyme' ? 'PyME' : 'Persona Física';
+  document.getElementById('piPerfil').textContent = perfil?.perfil_inversor
+    ? perfil.perfil_inversor.charAt(0).toUpperCase() + perfil.perfil_inversor.slice(1)
+    : 'Moderado';
+  document.getElementById('piFecha').textContent  =
+    new Date(perfil?.creado_en || user.created_at).toLocaleDateString('es-AR');
+
+  if (perfil?.es_admin) document.getElementById('adminLink').style.display = 'flex';
+
+  document.getElementById('loadingOverlay').classList.add('hidden');
+}
+init();
+
+/* ── Logout ───────────────────────────────────────── */
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  window.location.href = 'login.html';
+});
+
+/* ── Mobile hamburger ─────────────────────────────── */
+const sidebar = document.getElementById('sidebar');
+const overlay  = document.getElementById('sbOverlay');
+document.getElementById('hamburgerBtn').addEventListener('click', () => {
+  sidebar.classList.toggle('open'); overlay.classList.toggle('show');
+});
+overlay.addEventListener('click', () => {
+  sidebar.classList.remove('open'); overlay.classList.remove('show');
+});
 </script>
 </body>
 </html>
